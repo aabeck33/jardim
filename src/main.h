@@ -26,7 +26,7 @@
 constexpr const char* NOME_PROJETO = "Jardim Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
 constexpr const char* TIPO_DISPOSITIVO = "ESP32-Jardim";
-constexpr const char* VERSAO_FIRMWARE = "0.0.1-alpha"; // Versão do firmware
+constexpr const char* VERSAO_FIRMWARE = "0.0.2-alpha"; // Versão do firmware
 constexpr const char* ssid = "aabeck-ESP32";
 constexpr const char* password = "EbSePc3k2&";
 constexpr int8_t OLED_RESET = -1;                     // Reset por software
