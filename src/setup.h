@@ -72,7 +72,7 @@ void setupWiFi() {
       display.display();
       delay(3000);
     #endif
-  } else {
+  } else if (WIFI_MODE == WIFI_STA) {
     Serial.println("Conectando ao Wi-Fi...");
     #if USE_DISPLAY
       displayOnOff();
@@ -89,7 +89,12 @@ void setupWiFi() {
     WiFi.setAutoConnect(true);      // Habilita conexão automática
     WiFi.setHostname(DISPOSITIVO);  // Define o hostname do dispositivo
     WiFi.begin(ssid, password);     // Conecta como cliente
-    //connectToWiFi();                // Faz a conexão se for estação
+    connectToWiFi();                // Faz a conexão se for estação
+  } else {
+    Serial.println("Modo Wi-Fi inválido.");
+    showError("Modo Wi-Fi inválido.", 1);
+    sinalizaErro(ERRO_WIFI_PISCA, "rapido");
+    delay(3000);
   }
 }
 
