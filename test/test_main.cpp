@@ -159,13 +159,17 @@ TEST_CASE("enviarDados envia dados", "[utils] [Dados]") {
 /**
  * @brief Configura o ambiente de teste. É executado antes de cada teste.
  */
-void setUp() {}
+void setUp() {
+    // Não faz nada
+}
 
 
 /**
  * @brief Desconfigura o ambiente de teste. É executado após cada teste.
  */
-void tearDown() {}
+void tearDown() {
+    // Não faz nada
+}
 
 
 /**

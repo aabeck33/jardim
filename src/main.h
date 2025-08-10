@@ -21,11 +21,23 @@
 #include <SPIFFS.h>
 
 
-// === CONFIGURAÇÕES ===
-// Nome/Tipo do dispositivo (identificação)
-constexpr const char* NOME_PROJETO = "Jardim Inteligente";
+// === Configurações do programa ===
+#define DEBUG_MODE false        // Modo de depuração
+#define USE_DISPLAY true        // Usar display OLED
+#define USE_LORA true           // Usar LoRa para comunicação
+#define USE_BATTERY false       // Usar monitoramento da bateria
+#define USE_ENCRYPTION true     // Usar encriptação
+#define USE_DEEP_SLEEP false    // Usar sono profundo para economia de energia
+#define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
+#define USE_WIFI false          // Usar Wi-Fi para comunicação
+#define USE_SERIAL true         // Usar Serial para depuração
+#define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
+
+
+// === Variáveis e Constantes Globais ===
+constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
-constexpr const char* TIPO_DISPOSITIVO = "ESP32-Jardim";
+constexpr const char* TIPO_DISPOSITIVO = "ESP32V3";
 constexpr const char* VERSAO_FIRMWARE = "0.0.2-alpha"; // Versão do firmware
 constexpr const char* ssid = "aabeck-ESP32";
 constexpr const char* password = "EbSePc3k2&";
@@ -59,7 +71,6 @@ constexpr wifi_mode_t WIFI_MODE = WIFI_STA;           // Modo Wi-Fi: WIFI_STA (c
 constexpr uint32_t INTERVALO_RECONEXAO_WIFI = 180000; // Intervalo de reconexão Wi-Fi em milissegundos
 constexpr uint16_t WIFI_TIMEOUT = 10000;              // Timeout do Wi-Fi em milissegundos
 
-
 // Atribui valor persistente mesmo após deep sleep (mantido na RAM RTC)
 RTC_DATA_ATTR bool modoSeguro = false;  // Modo seguro para evitar loops infinitos
 bool displayStatus = false;             // Status do display OLED
@@ -69,18 +80,6 @@ bool serialOk = false;                  // Indica se a Serial foi iniciada corre
   unsigned long ultimaTentativaWiFi = 0; // Armazena o tempo da última tentativa de conexão Wi-Fi
 #endif
 
-
-// === Configurações do programa ===
-#define DEBUG_MODE false        // Modo de depuração
-#define USE_DISPLAY true        // Usar display OLED
-#define USE_LORA true           // Usar LoRa para comunicação
-#define USE_BATTERY false       // Usar monitoramento da bateria
-#define USE_ENCRYPTION true     // Usar encriptação
-#define USE_DEEP_SLEEP false    // Usar sono profundo para economia de energia
-#define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
-#define USE_WIFI false          // Usar Wi-Fi para comunicação
-#define USE_SERIAL true         // Usar Serial para depuração
-#define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
 // === Lista de piscadas de LED ===
 #define ERROCRIT_PISCA 10       // 10 piscadas rápidas
@@ -120,12 +119,11 @@ void processarComando(const String &cmd);
 void receberComandoLoRa();
 void aguardar(int tempo);
 String xorEncrypt(const String &input, char key);
+String xorDecrypt(const String &input, char key);
 String coletarDados();
 void logToSPIFFS(const String &message);
 void printLog();
 void enviarDados(const String &payload);
-void receberComandoLoRa();
-void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc);
 
 #endif
 // main.h

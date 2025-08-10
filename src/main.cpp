@@ -17,13 +17,34 @@
 #include "setup.h"
 #include "utils.h"
 
+
 // Instância do módulo LoRa SX1262
+/**
+ * @brief Initializes an SX1262 LoRa module with specified pin configuration.
+ *
+ * @param NSS   Chip select (NSS) pin number.
+ * @param DIO1  DIO1 pin number for interrupt handling.
+ * @param RESET Reset pin number for hardware reset.
+ * @param BUSY  Busy pin number to monitor module status.
+ *
+ * @note The SX1262 object is created using the specified pin assignments.
+ */
 SX1262 lora = new Module(/* NSS  */ 18, 
                          /* DIO1 */ 14, 
                          /* RESET*/ 23, 
                          /* BUSY */ 26);
 
 // Instância do display OLED SSD1306
+/**
+ * @brief Creates an instance of the Adafruit_SSD1306 display object.
+ *
+ * This object is used to interface with an SSD1306 OLED display using the I2C protocol.
+ *
+ * @param SCREEN_WIDTH The width of the display in pixels.
+ * @param SCREEN_HEIGHT The height of the display in pixels.
+ * @param &Wire Reference to the I2C communication object.
+ * @param OLED_RESET The pin used to reset the display (can be set to -1 if not used).
+ */
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
