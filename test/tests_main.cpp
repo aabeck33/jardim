@@ -1,3 +1,11 @@
+/**
+ * @file tests_main.cpp
+ * @brief Testes para o projeto Jardim Inteligente
+ * by Alvaro A. Beck  -  2025-07 - Last update: 2025-08-10
+ * Este arquivo contém os testes unitários para as funções do projeto Jardim Inteligente.
+ * Certifique-se de que todos os testes estão cobertos e funcionando corretamente.
+ * Para executar os testes, use o comando `platformio test` na raiz do projeto.
+ */
 #include <Arduino.h>
 #include <unity.h>
 #include "main.h"
@@ -174,3 +182,5 @@ void setup() {
 void loop() {
     // Não faz nada
 }
+
+// tests_main.cpp

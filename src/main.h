@@ -1,7 +1,17 @@
-// main.h
 #ifndef MAIN_H
 #define MAIN_H
-
+/** 
+ * @file main.h
+ * @brief Biblioteca principal do projeto Jardim Inteligente
+ * Libraries used:
+ *   - Arduino for basic functions
+ *   - ArduinoJson for JSON serialization
+ *   - RadioLib for LoRa communication
+ *   - WiFi for Wi-Fi connectivity
+ *   - Adafruit SSD1306 for OLED display
+ *   - esp_task_wdt for watchdog timer
+ *   - SPIFFS for file system support
+ */
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <RadioLib.h>
@@ -11,7 +21,7 @@
 #include <SPIFFS.h>
 
 
-// ==== CONFIGURAÇÕES ====
+// === CONFIGURAÇÕES ===
 // Nome/Tipo do dispositivo (identificação)
 constexpr const char* NOME_PROJETO = "Jardim Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
@@ -32,7 +42,7 @@ constexpr uint8_t BATTERY_PIN = 34;                   // Pino analógico para mo
 constexpr uint32_t BAUD_RATE = 115200;                // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;          // Timeout da Serial em milissegundos
 //constexpr uint8_t LED_BUILTIN = 2;                    // Pino do LED embutido (GPIO 2)
-// === Sensores de umidade do solo ===
+// Sensores de umidade do solo
 constexpr int pinosUmidade[] = {25, 32, 33, 35, 36, 39};  // Pinos ADC disponíveis no ESP32
 constexpr size_t numSensoresUmidade = sizeof(pinosUmidade) / sizeof(pinosUmidade[0]);
 // Obs: Evite usar GPIOs 34 a 39 para saída digital, eles são apenas de entrada analógica.
@@ -60,7 +70,7 @@ bool serialOk = false;                  // Indica se a Serial foi iniciada corre
 #endif
 
 
-// Configurações do programa
+// === Configurações do programa ===
 #define DEBUG_MODE false        // Modo de depuração
 #define USE_DISPLAY true        // Usar display OLED
 #define USE_LORA true           // Usar LoRa para comunicação
@@ -71,7 +81,8 @@ bool serialOk = false;                  // Indica se a Serial foi iniciada corre
 #define USE_WIFI false          // Usar Wi-Fi para comunicação
 #define USE_SERIAL true         // Usar Serial para depuração
 #define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
-// Lista de piscadas de LED:
+
+// === Lista de piscadas de LED ===
 #define ERROCRIT_PISCA 10       // 10 piscadas rápidas
 #define ERRODISPLAY_PISCA 3     // 3 piscadas rápidas
 #define ERROLORA_PISCA 4        // 4 piscadas rápidas
@@ -81,12 +92,12 @@ bool serialOk = false;                  // Indica se a Serial foi iniciada corre
 #define MODOSEGURO_PISCA 12     // 12 piscadas rápidas
 
 
-// ==== OBJETOS GLOBAIS ====
+// === OBJETOS GLOBAIS ===
 extern SX1262 lora;
 extern Adafruit_SSD1306 display;
 
 
-// ==== FUNÇÕES ====
+// === FUNÇÕES ===
 // setup.h
 bool setupSerial();
 void setupWiFi();
@@ -118,4 +129,3 @@ void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc);
 
 #endif
 // main.h
-// ...existing code...

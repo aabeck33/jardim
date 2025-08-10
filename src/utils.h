@@ -1,7 +1,9 @@
-// utils.h
 #ifndef UTILS_H
 #define UTILS_H
-
+/** 
+ * @file utils.h
+ * @brief Funções utilitárias para o projeto Jardim Inteligente.
+ */
 #include "main.h"
 
 
@@ -359,6 +361,21 @@ String xorEncrypt(const String &input, char key) {
 
 
 /**
+ * @brief Descriptografa uma string encriptada com XOR simples.
+ * @param input [String] String encriptada.
+ * @param key [char] Chave de encriptação (caractere).
+ * @return [String] String original descriptografada.
+ */
+String xorDecrypt(const String &input, char key) {
+  String output = input;
+  for (size_t i = 0; i < input.length(); i++) {
+    output[i] = input[i] ^ key;
+  }
+  return output;
+}
+
+
+/**
  * @brief Coleta dados do dispositivo (sensores) e cria um JSON.
  * @return [String] JSON com os dados serializados.
  */
@@ -470,4 +487,3 @@ void enviarDados(const String &payload) {
 
 #endif
 // utils.h
-// ...existing code...

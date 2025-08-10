@@ -1,23 +1,18 @@
-// Projeto Jardim Inteligente
-// by Alvaro A. Beck  -  2025-07 - Last update: 2025-07-15
-// This code is licensed under the GNU General Public License v3.0
-// https://www.gnu.org/licenses/gpl-3.0.en.html
-//////////////////////////////////////////////////////////////////////////////////////////////////
-// Projeto Jardim Inteligente - Código fonte principal
-// This project is designed to run on an ESP32 board with LoRa capabilities.
-// It collects data from soil moisture sensors, battery voltage, and internal temperature,
-// then sends this data via LoRa in a JSON format. The data is encrypted using AES-128.
-// Libraries used:
-// - RadioLib for LoRa communication
-// - ArduinoJson for JSON serialization
-// - AESLib for AES encryption
-// - Wire for I2C communication (if needed for other sensors in the future)
-// - Adafruit BusIO for I2C communication with Adafruit devices (if needed)
-// This code is designed to be compiled with PlatformIO using the C++11 standard.
-// PlatformIO configuration is set in platformio.ini file.
-// Teste - Simulação de JSON: https://arduinojson.org/v6/assistant/
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file main.cpp
+ * @brief Código principal do projeto Jardim Inteligente
+ * by Alvaro A. Beck  -  2025-07 - Last update: 2025-00-10
+ * This code is licensed under the GNU General Public License v3.0
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * This project is designed to run on an ESP32 board with LoRa capabilities.
+ * It collects data from soil moisture sensors, battery voltage, and internal temperature,
+ * then sends this data via LoRa in a JSON format. The data is encrypted using AES-128.
+ * It also includes a watchdog timer to prevent infinite loops and a display for status updates.
+ * This code is designed to be compiled with PlatformIO using the C++11 standard.
+ * PlatformIO configuration is set in platformio.ini file.
+ * Teste - Simulação de JSON: https://arduinojson.org/v6/assistant/
+ */
 #include "main.h"
 #include "setup.h"
 #include "utils.h"
@@ -203,4 +198,5 @@ void loop() {
     aguardar(TEMPO_ENVIO);
   #endif
 }
-// Fim do código principal
+
+// main.cpp

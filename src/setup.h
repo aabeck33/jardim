@@ -1,7 +1,9 @@
-// setup.h
 #ifndef SETUP_H
 #define SETUP_H
-
+/** 
+ * @file setup.h
+ * @brief Configurações de inicialização do sistema e dispositivos.
+ */
 #include "utils.h"
 
 
@@ -215,4 +217,3 @@ void setupDisplay() {
 
 #endif
 // setup.h
-// ...existing code...
