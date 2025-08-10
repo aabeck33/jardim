@@ -7,7 +7,7 @@
 
 /**
  * @brief Configura a Serial com timeout.
- * @return true se a Serial foi iniciada corretamente, false caso contrário.
+ * @return [Boolean] true se a Serial foi iniciada corretamente, false caso contrário.
  */
 bool setupSerial() {
   unsigned long startMillis = millis();

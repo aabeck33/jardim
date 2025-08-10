@@ -7,7 +7,7 @@
 
 /**
  * @brief Liga ou desliga o display OLED.
- * @param state Estado desejado ("on" ou "off"). Padrão: "on".
+ * @param state [String] Estado desejado ("on" ou "off"). Padrão: "on".
  */
 void displayOnOff(String state) {
   if (state == "on") {
@@ -22,8 +22,8 @@ void displayOnOff(String state) {
 
 /**
  * @brief Pisca o LED embutido para sinalizar erro.
- * @param numPisca Número de piscadas.
- * @param frequencia "lento", "rapido" ou padrão.
+ * @param numPisca [Int8] Número de piscadas.
+ * @param frequencia [String] Velocidade de piscada: "lento", "rapido". Padrão: "lento".
  */
 void sinalizaErro(uint8_t numPisca, String frequencia) {
   uint32_t tempoDelay;
@@ -46,7 +46,7 @@ void sinalizaErro(uint8_t numPisca, String frequencia) {
 
 /**
  * @brief Executa rotina de erro crítico, sinaliza e reinicia o ESP32.
- * @param motivo Mensagem do motivo do erro.
+ * @param motivo [String] Mensagem do motivo do erro. Padrão: "Erro crítico não especificado".
  */
 void erroCritico(String motivo) {
   Serial.println("ERRO CRÍTICO: " + motivo);
@@ -60,8 +60,8 @@ void erroCritico(String motivo) {
 
 /**
  * @brief Exibe mensagem de erro no display e/ou Serial.
- * @param message Mensagem de erro.
- * @param errorType Tipo do erro (1: crítico, 2: comunicação, -1: genérico).
+ * @param message [String] Mensagem de erro.
+ * @param errorType [int8_t] Tipo do erro (1: crítico, 2: comunicação, -1: genérico). Padrão: -1.
  */
 void showError(String message, int8_t errorType) {
   #if (USE_DISPLAY)
@@ -119,7 +119,7 @@ void connectToWiFi() {
     display.display();
   #endif
 
-  WiFi.reconnect();               // força nova tentativa ativa
+  WiFi.reconnect();     // força nova tentativa ativa
   while (WiFi.status() != WL_CONNECTED && millis() - startMillis < WIFI_TIMEOUT) {
     delay(500);
     Serial.print(".");
@@ -147,7 +147,7 @@ void connectToWiFi() {
 
 /**
  * @brief Lê a tensão da bateria usando um divisor resistivo de 2:1.
- * @return Tensão da bateria em volts.
+ * @return [Float] Tensão da bateria em volts.
  */
 float readBatteryVoltage() {
   int raw = analogRead(BATTERY_PIN);
@@ -213,7 +213,7 @@ void verificarUsoRAM() {
 
 /**
  * @brief Verifica o uso de memória JSON e exibe/loga alertas se necessário.
- * @param doc Documento JSON a ser verificado.
+ * @param doc [StaticJsonDocument] Documento JSON a ser verificado.
  */
 void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc) {
   size_t uso = doc.memoryUsage();
@@ -256,7 +256,7 @@ void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc) {
 
 /**
  * @brief Lê a temperatura interna do ESP32.
- * @return Temperatura aproximada em graus Celsius.
+ * @return [Float] Temperatura aproximada em graus Celsius.
  */
 float getInternalTemperature() {
   // Lê o sensor interno (bruto)
@@ -270,7 +270,7 @@ float getInternalTemperature() {
 
 /**
  * @brief Processa comandos recebidos via LoRa.
- * @param cmd Comando recebido.
+ * @param cmd [String] Comando recebido.
  */
 void processarComando(const String &cmd) {
   if (cmd == "LED_ON") {
@@ -316,7 +316,7 @@ void receberComandoLoRa() {
 
 /**
  * @brief Aguarda um tempo específico em minutos, alimentando o watchdog.
- * @param tempo Tempo em minutos para aguardar.
+ * @param tempo [Int] Tempo em minutos para aguardar.
  */
 void aguardar(int tempo) {
   unsigned long interval = 1000;    // 1 segundo
@@ -345,9 +345,9 @@ void aguardar(int tempo) {
 
 /**
  * @brief Encripta uma string usando XOR simples.
- * @param input String a ser encriptada.
- * @param key Chave de encriptação (caractere).
- * @return String encriptada.
+ * @param input [String] String a ser encriptada.
+ * @param key [char] Chave de encriptação (caractere).
+ * @return [String] String encriptada.
  */
 String xorEncrypt(const String &input, char key) {
   String output = input;
@@ -360,7 +360,7 @@ String xorEncrypt(const String &input, char key) {
 
 /**
  * @brief Coleta dados do dispositivo (sensores) e cria um JSON.
- * @return String JSON com os dados serializados.
+ * @return [String] JSON com os dados serializados.
  */
 String coletarDados() {
   // Criação do JSON
@@ -411,7 +411,7 @@ String coletarDados() {
 
 /**
  * @brief Loga uma mensagem no SPIFFS.
- * @param message Mensagem a ser logada.
+ * @param message [String] Mensagem a ser logada.
  */
 void logToSPIFFS(const String &message) {
   File file = SPIFFS.open("/log.txt", FILE_APPEND);
@@ -438,7 +438,7 @@ void printLog() {
 
 /**
  * @brief Envia os dados coletados via LoRa.
- * @param payload String JSON com os dados a serem enviados.
+ * @param payload [String] JSON com os dados a serem enviados.
  */
 void enviarDados(const String &payload) {
   Serial.println("Enviando dados: " + payload);
