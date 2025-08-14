@@ -96,8 +96,8 @@ void setup() {
   }
   pinMode(BATTERY_PIN, INPUT); // Pino da bateria
   pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP); // Pino do botão de sair do modo seguro
-  pinMode(LED_BUILTIN, OUTPUT); // LED integrado do ESP32
-  digitalWrite(LED_BUILTIN, LOW); // Desliga o LED integrado
+  pinMode(LED_PIN, OUTPUT); // LED integrado do ESP32
+  digitalWrite(LED_PIN, LOW); // Desliga o LED integrado
   Serial.println("Pinos configurados.");
 
   #if (USE_DISPLAY)

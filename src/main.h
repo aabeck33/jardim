@@ -53,7 +53,7 @@ constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
 constexpr uint8_t BATTERY_PIN = 34;                    // Pino analógico para monitoramento da bateria
 constexpr uint32_t BAUD_RATE = 115200;                 // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
-//constexpr uint8_t LED_BUILTIN = 2;                    // Pino do LED embutido (GPIO 2)
+constexpr uint8_t LED_PIN = 35;                        // Pino do LED embutido (GPIO 35)
 // Sensores de umidade do solo
 constexpr int pinosUmidade[] = {25, 32, 33, 35, 36, 39};  // Pinos ADC disponíveis no ESP32
 constexpr size_t numSensoresUmidade = sizeof(pinosUmidade) / sizeof(pinosUmidade[0]);

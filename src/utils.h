@@ -38,9 +38,9 @@ void sinalizaErro(uint8_t numPisca, String frequencia) {
     tempoDelay = 200; // Padrão
   }
   for (int i = 0; i < numPisca; i++) {
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     delay(tempoDelay);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(LED_PIN, LOW);
     delay(tempoDelay);
   }
 }
