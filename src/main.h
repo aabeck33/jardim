@@ -17,6 +17,8 @@
 #include <RadioLib.h>
 #include <WiFi.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+#include <Wire.h>
 #include <esp_task_wdt.h>
 #include <SPIFFS.h>
 
@@ -33,6 +35,8 @@
 #define USE_SERIAL true         // Usar Serial para depuração
 #define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
+#define OLED_SDA 17
+#define OLED_SCL 18
 
 // === Variáveis e Constantes Globais ===
 constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
