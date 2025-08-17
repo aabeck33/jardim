@@ -14,13 +14,7 @@
 #include "utils.h"
 
 
-// === Mock para funções que causam reset ou delay longo ===
-void erroCriticoMock(String motivo = "Erro crítico não especificado") {
-    Serial.println("Simulando erroCritico: " + motivo);
-    // Não chama esp_restart()
-}
-
-void aguardarMock(int tempo) {
+void aguardarMock(uint8_t tempo) {
     Serial.println("Simulando aguardar por " + String(tempo) + " minutos.");
     delay(1000); // Aguarda apenas 1 segundo para teste
 }
@@ -60,11 +54,6 @@ TEST_CASE("displayOnOff liga e desliga display", "[utils] [Display]") {
 TEST_CASE("sinalizaErro pisca LED", "[utils] [LED]") {
     sinalizaErro(2, "rapido");
     sinalizaErro(2, "lento");
-    TEST_ASSERT_TRUE(true);
-}
-
-TEST_CASE("erroCritico simulado", "[utils] [Erro]") {
-    erroCriticoMock("Teste de erro crítico");
     TEST_ASSERT_TRUE(true);
 }
 

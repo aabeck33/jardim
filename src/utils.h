@@ -11,7 +11,7 @@
  * @brief Liga ou desliga o display OLED.
  * @param state [String] Estado desejado ("on" ou "off"). Padrão: "on".
  */
-void displayOnOff(String state) {
+void displayOnOff(const String &state) {
   if (state == "on") {
     displayStatus = true;
     display.ssd1306_command(SSD1306_DISPLAYON);
@@ -27,8 +27,8 @@ void displayOnOff(String state) {
  * @param numPisca [Int8] Número de piscadas.
  * @param frequencia [String] Velocidade de piscada: "lento", "rapido". Padrão: "lento".
  */
-void sinalizaErro(uint8_t numPisca, String frequencia) {
-  uint32_t tempoDelay;
+void sinalizaErro(const uint8_t numPisca, const String &frequencia) {
+  uint16_t tempoDelay;
 
   if (frequencia == "lento") {
     tempoDelay = 300;
@@ -47,47 +47,29 @@ void sinalizaErro(uint8_t numPisca, String frequencia) {
 
 
 /**
- * @brief Executa rotina de erro crítico, sinaliza e reinicia o ESP32.
- * @param motivo [String] Mensagem do motivo do erro. Padrão: "Erro crítico não especificado".
- */
-void erroCritico(String motivo) {
-  Serial.println("ERRO CRÍTICO: " + motivo);
-  Serial.println("Entrando em modo seguro...");
-  modoSeguro = true;    // Seta a flag
-  sinalizaErro(ERROCRIT_PISCA, "rapido");
-  delay(1000);
-  esp_restart();        // Reinicia o ESP32 e entra em modo seguro
-}
-
-
-/**
  * @brief Exibe mensagem de erro no display e/ou Serial.
  * @param message [String] Mensagem de erro.
- * @param errorType [int8_t] Tipo do erro (1: crítico, 2: comunicação, -1: genérico). Padrão: -1.
+ * @param errorType [int8_t] Tipo do erro (
+ *      0: Ero crítico
+ *      1: Erro grave
+ *      2: Erro de comunicação
+ *     -1: Erro genérico
+ *      Padrão: -1.
  */
-void showError(String message, int8_t errorType) {
-  #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(6 * 0, 8 * 0);
-    if (errorType == 1) {
-      display.print("Erro crítico: " + message);
-    } else if (errorType == 2) {
-      display.print("Erro de comunicação: " + message);
-    } else {
-      display.print("Erro: " + message);
-    }
-    display.display();
-    delay(3000);
-  #else
-    if (errorType == 1) {
-      Serial.print("Erro crítico: " + message + ". Reinicie o dispositivo.");
-    } else if (errorType == 2) {
-      Serial.print("Erro de comunicação: " + message);
-    } else {
-      Serial.print("Erro: " + message);
-    }
-  #endif
+void showError(const String &message, const uint8_t errorType) {
+  if (errorType == 0) {
+    dispmsg("ERRO CRÍTICO: " + message + "\nReiniciando em modo seguro...");
+    modoSeguro = true;    // Seta a flag
+    sinalizaErro(ERROCRIT_PISCA, "rapido");
+    delay(1000);
+    esp_restart();        // Reinicia o ESP32 e entra em modo seguro
+  } else if (errorType == 1) {
+    dispmsg("Erro grave: " + message);
+  } else if (errorType == 2) {
+    dispmsg("Erro de comunicação: " + message);
+  } else {
+    dispmsg("Erro: " + message);
+  }
 }
 
 
@@ -112,13 +94,8 @@ void connectToWiFi() {
   Serial.print("Conectando ao Wi-Fi: ");
   Serial.println(ssid);
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(0 * 6, 0 * 8);
-    display.print("Conectando ao Wi-Fi:");
-    display.setCursor(0 * 6, 1 * 8);
-    display.print(ssid);
-    display.display();
+    dispmsg("Conectando ao Wi-Fi:");
+    dispmsg(ssid, 1);
   #endif
 
   WiFi.reconnect();     // força nova tentativa ativa
@@ -132,13 +109,8 @@ void connectToWiFi() {
     Serial.print("IP Local: ");
     Serial.println(WiFi.localIP());
     #if USE_DISPLAY
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("Wi-Fi conectado!");
-      display.setCursor(0, 8);
-      display.print("IP: " + WiFi.localIP().toString());
-      display.display();
-      delay(3000);
+      dispmsg("Wi-Fi conectado!");
+      dispmsg("IP: " + WiFi.localIP().toString(), 1);
     #endif
   } else {
     sinalizaErro(ERRO_WIFI_PISCA, "rapido");
@@ -152,7 +124,7 @@ void connectToWiFi() {
  * @return [Float] Tensão da bateria em volts.
  */
 float readBatteryVoltage() {
-  int raw = analogRead(BATTERY_PIN);
+  int raw = analogRead(VBAT_READ);
   float voltage = (raw / 4095.0) * 3.3 * 2.0; // Ajuste conforme divisor
   return voltage;
 }
@@ -171,12 +143,7 @@ void verificarUsoRAM() {
   Serial.printf("[RAM] Total RAM livre: %u bytes\n", heapLivre + heapInterno + heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(6 * 0, 8 * 0);
-    display.print("RAM livre: " + String(heapLivre) + " bytes");
-    display.display();
-    delay(3000);
+    dispmsg("RAM livre: " + String(heapLivre) + " bytes");
   #endif
 
   #if (USE_SPIFFS && DEBUG_MODE)
@@ -188,12 +155,7 @@ void verificarUsoRAM() {
   if (heapLivre < 10000) { // Se menos de 10KB livre
     Serial.println("⚠️ ALERTA: Memória RAM baixa!");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("⚠️ Memória RAM baixa!");
-      display.display();
-      delay(3000);
+      dispmsg("⚠️ Memória RAM baixa!");
     #endif
 
     #if (USE_SPIFFS)
@@ -201,16 +163,38 @@ void verificarUsoRAM() {
     #endif
   } else {
     Serial.println("Memória RAM OK.");
-
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("Memória RAM OK.");
-      display.display();
-      delay(3000);
+      dispmsg("Memória RAM OK.");
+      delay(2000);
     #endif
   }
+}
+
+/**
+ * @brief Exibe uma mensagem no display e no Serial.
+ * @param msg [String] Mensagem a ser exibida.
+ * @param linha [uint8_t] Linha no display.
+ * @param coluna [uint8_t] Coluna no display.
+ * @param tamanho [uint8_t] Tamanho do texto.
+ * @param corTexto [uint8_t] Cor do texto.
+ * @param corFundo [uint8_t] Cor de fundo.
+ */
+void dispmsg(const String &msg, const uint8_t linha, const uint8_t coluna, const uint8_t tamanho, 
+  const uint8_t corTexto, const uint8_t corFundo, const bool inverter) {
+  Serial.println(msg);
+  #if (USE_DISPLAY)
+    displayOnOff();
+    display.clearDisplay();
+    display.setTextSize(tamanho);
+    display.setCursor(6 * coluna, 8 * linha);
+    if (inverter) {
+      display.setTextColor(corFundo, corTexto);
+    } else {
+      display.setTextColor(corTexto, corFundo);
+    }
+    display.print(msg);
+    display.display();
+  #endif
 }
 
 /**
@@ -232,12 +216,7 @@ void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc) {
     Serial.println("⚠️ ALERTA: Uso de JSON muito alto!");
 
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("⚠️ ALERTA: Uso de JSON alto!");
-      display.display();
-      delay(3000);
+      dispmsg("⚠️ ALERTA: Uso de JSON alto!");
     #endif
 
     #if (USE_SPIFFS)
@@ -246,27 +225,25 @@ void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc) {
   } else {  
     Serial.println("Uso de JSON dentro do limite.");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("Uso de JSON OK.");
-      display.display();
-      delay(3000);
+      dispmsg("Uso de JSON OK.");
+      delay(2000);
     #endif
   }
 }
 
 /**
- * @brief Lê a temperatura interna do ESP32.
+ * @brief Lê a temperatura interna do ESP32. Normalmente entre 20°C e 80°C
  * @return [Float] Temperatura aproximada em graus Celsius.
  */
-float getInternalTemperature() {
-  // Lê o sensor interno (bruto)
-  uint16_t rawTemp = temperatureRead();
-  // Pode-se aplicar uma correção/calibração se necessário
-  float rawCalibrated = (rawTemp - 32.0) / 1.8 - 5.0; // ajuste estimado
+float getInternalTemperature(const String &unidade) {
+  uint16_t rawTempC = temperatureRead();
 
-  return rawCalibrated;  // Aproximado, normalmente entre 20°C e 80°C
+  if (unidade == "fahrenheit") {
+    float rawTempF = (rawTempC * 1.8) + 32.0;
+    return rawTempF;
+  } else {
+    return rawTempC;
+  }
 }
 
 
@@ -320,18 +297,13 @@ void receberComandoLoRa() {
  * @brief Aguarda um tempo específico em minutos, alimentando o watchdog.
  * @param tempo [Int] Tempo em minutos para aguardar.
  */
-void aguardar(int tempo) {
+void aguardar(const uint8_t tempo) {
   unsigned long interval = 1000;    // 1 segundo
   unsigned long elapsed = 0;
 
   Serial.println("Aguardando " + String(tempo) + " minutos...");
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(6 * 0, 8 * 0);
-    display.print("Aguardando " + String(tempo) + " minutos...");
-    display.display();
-    delay(3000);
+    dispmsg("Aguardando " + String(tempo) + " minutos...");
   #endif
 
   while (elapsed < tempo * 60000) {
@@ -351,7 +323,7 @@ void aguardar(int tempo) {
  * @param key [char] Chave de encriptação (caractere).
  * @return [String] String encriptada.
  */
-String xorEncrypt(const String &input, char key) {
+String xorEncrypt(const String &input, const char key) {
   String output = input;
   for (size_t i = 0; i < input.length(); i++) {
     output[i] = input[i] ^ key;
@@ -366,7 +338,7 @@ String xorEncrypt(const String &input, char key) {
  * @param key [char] Chave de encriptação (caractere).
  * @return [String] String original descriptografada.
  */
-String xorDecrypt(const String &input, char key) {
+String xorDecrypt(const String &input, const char key) {
   String output = input;
   for (size_t i = 0; i < input.length(); i++) {
     output[i] = input[i] ^ key;
@@ -401,19 +373,14 @@ String coletarDados() {
   // Criar o array para os valores de umidade
   JsonArray umidade = dados.createNestedArray("umidade");
   // Ler sensores de umidade do solo
-  for (int i = 0; i < numSensoresUmidade; i++) {
-    int leitura = analogRead(pinosUmidade[i]);  // 0 (úmido) a 4095 (seco)
+  for (int i = 0; i < numEntradas; i++) {
+    int leitura = analogRead(pinosEntrada[i]);  // 0 (úmido) a 4095 (seco)
     umidade.add(leitura);
   }
 
   Serial.println("Dados coletados.");
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(6 * 0, 8 * 2);
-    display.print("Dados coletados.");
-    display.display();
-    delay(3000);
+    dispmsg("Dados coletados.");
   #endif
 
   // Verifica uso de memória do JSON
@@ -460,12 +427,7 @@ void printLog() {
 void enviarDados(const String &payload) {
   Serial.println("Enviando dados: " + payload);
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Enviando dados.......");
-    display.display();
-    delay(3000);
+    dispmsg("Enviando dados.......");
   #endif
 
   // Enviar via LoRa
@@ -473,15 +435,36 @@ void enviarDados(const String &payload) {
   if (status == RADIOLIB_ERR_NONE) {
     Serial.println("Dados enviados com sucesso.");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("Dados enviados.");
-      display.display();
-      delay(3000);
+      dispmsg("Dados enviados.");
     #endif
   } else {
     showError(String(status), 2);
+  }
+}
+
+/**
+ * @brief Faz o reset do display OLED.
+ */
+void resetOLED() {
+  digitalWrite(OLED_RESET, LOW);
+  delay(150);
+  digitalWrite(OLED_RESET, HIGH);
+  delay(150);
+  dispmsg("Display resetado.");
+}
+
+/**
+ * @brief Liga ou Desliga o circuito Vext.
+ */
+void VextOnOff(const String &state) {
+  if (state == "On") {
+    digitalWrite(PINO_VEXT, LOW);
+    delay(150);
+    dispmsg("Circuite Vext ligado.");
+  } else {
+    digitalWrite(PINO_VEXT, HIGH);
+    delay(150);
+    dispmsg("Circuite Vext desligado.");
   }
 }
 

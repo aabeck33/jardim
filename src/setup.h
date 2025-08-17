@@ -23,11 +23,11 @@ bool setupSerial() {
   if (!Serial) {
     showError("Serial não iniciada.", 1);
     sinalizaErro(ERROSERIAL_PISCA, "rapido");
-    delay(3000);
+    delay(2000);
     /*
     while (true) {
       sinalizaErro(ERROSERIAL_PISCA, "rapido");
-      delay(3000);
+      delay(2000);
     }
     */
     return false; // Retorna falso se a Serial não foi iniciada
@@ -39,7 +39,7 @@ bool setupSerial() {
       display.setCursor(6 * 0, 8 * 0);
       display.print("Serial iniciada.");
       display.display();
-      delay(3000);
+      delay(2000);
     #endif
     return true;
   }
@@ -62,25 +62,13 @@ void setupWiFi() {
     Serial.println("Ponto de acesso criado: " + String(ssid));
     Serial.println("IP Local: " + IP.toString());
     #if USE_DISPLAY
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("AP: ");
-      display.print(ssid);
-      display.setCursor(0, 8);
-      display.print("IP: " + IP.toString());
-      display.display();
-      delay(3000);
+      dispmsg("AP: " + String(ssid));
+      dispmsg("IP: " + IP.toString(), 1);
     #endif
   } else if (WIFI_MODE == WIFI_STA) {
     Serial.println("Conectando ao Wi-Fi...");
     #if USE_DISPLAY
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("Conectando ao Wi-Fi...");
-      display.display();
-      delay(1000);
+      dispmsg("Conectando ao Wi-Fi...");
     #endif
 
     // Configura o Wi-Fi como cliente
@@ -94,7 +82,7 @@ void setupWiFi() {
     Serial.println("Modo Wi-Fi inválido.");
     showError("Modo Wi-Fi inválido.", 1);
     sinalizaErro(ERRO_WIFI_PISCA, "rapido");
-    delay(3000);
+    delay(2000);
   }
 }
 
@@ -114,12 +102,7 @@ void setupSPIFFS() {
   } else {
     Serial.println("SPIFFS montado com sucesso.");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("SPIFFS sucesso!");
-      display.display();
-      delay(3000);
+      dispmsg("SPIFFS sucesso.");
     #endif
   }
 }
@@ -133,12 +116,7 @@ void setupSPIFFS() {
 void setupLoRa() {
   Serial.println("Inicializando LoRa...");
   #if (USE_DISPLAY)
-    displayOnOff();
-    display.clearDisplay();
-    display.setCursor(6 * 0, 8 * 0);
-    display.print("Inicializando LoRa...");
-    display.display();
-    delay(3000);
+    dispmsg("Inicializando LoRa...");
   #endif
 
   int status = lora.begin();
@@ -177,21 +155,17 @@ void setupLoRa() {
     }
     Serial.println("LoRa inicializado com sucesso.");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("LoRa iniciado com sucesso.");
-      display.display();
+      dispmsg("LoRa sucesso.");
     #endif
   } else {
     showError(String(status), 2);
     while (true) {
       showError("LoRa não iniciado.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
-      delay(3000); // Aguarda 3 segundos.
+      delay(2000);
     }
   }
-  delay(3000);
+  delay(2000);
 }
 
 
@@ -201,23 +175,44 @@ void setupLoRa() {
  * Sinaliza erro e entra em loop caso não consiga inicializar.
  */
 void setupDisplay() {
+  // Liga o circuito Vext
+  VextOnOff();
+
+  // RESET do OLED
+  resetOLED();
+
+  // Inicia o barramento I2C
+  Wire.begin(OLED_SDA, OLED_SCL);
+  Serial.println("Barramento I2C iniciado.");
+
   // Inicializa o display OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     showError("Falha ao inicializar o display OLED.", 1);
     while (true) {
       showError("Display não iniciado.", 1);
       sinalizaErro(ERRODISPLAY_PISCA, "rapido");
-      delay(3000);
+      delay(2000);
     }
   }
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(6 * 0, 8 * 0);
-  Serial.println("Display OLED iniciado.");
-  display.print("OLED iniciado.");
   display.display();
-  delay(3000);
+  Serial.println("Display OLED iniciado.");
+  delay(500);
+}
+
+void iniciarPinos() {
+  // Pinos de entrada
+  for (int i = 0; i < numEntradas; i++) {
+    pinMode(pinosEntrada[i], INPUT);
+  }
+
+  // Pinos individuais:
+  pinMode(VBAT_READ, INPUT);                       // Pino da bateria
+  pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP);   // Pino do botão de sair do modo seguro
+  pinMode(LED_PIN, OUTPUT);                        // Pino do LED integrado
+  pinMode(PINO_VEXT, OUTPUT);                      // Pino Vext
+  pinMode(OLED_RESET, OUTPUT);                     // Pino de reset do OLED
+  analogReadResolution(ANALOG_RESOLUTION);
+  dispmsg("Pinos configurados.");
 }
 
 #endif

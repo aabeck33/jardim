@@ -29,10 +29,7 @@
  *
  * @note The SX1262 object is created using the specified pin assignments.
  */
-SX1262 lora = new Module(/* NSS  */ 18, 
-                         /* DIO1 */ 14, 
-                         /* RESET*/ 23, 
-                         /* BUSY */ 26);
+SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
 
 // Instância do display OLED SSD1306
 /**
@@ -66,8 +63,12 @@ void setup() {
     Serial.println("Tipo: " + String(TIPO_DISPOSITIVO));
   #endif
 
+  // Inicializa pinos
+  iniciarPinos();
+
+  // Configura modo seguro
   if (modoSeguro) {
-    Serial.println("Iniciando em MODO SEGURO - SetUp simplificado.");
+    dispmsg("Iniciando em MODO SEGURO - SetUp simplificado.");
     #if (USE_DISPLAY)
       setupDisplay();
     #endif
@@ -75,6 +76,12 @@ void setup() {
     // Aguarda comando via serial ou botão para sair do modo seguro
     return;
   }
+
+  #if (USE_DISPLAY)
+    setupDisplay();
+  #else
+    dispmsg("Display OLED desativado.");
+  #endif
 
   #if (USE_WIFI)
     setupWiFi();
@@ -85,32 +92,13 @@ void setup() {
     setupSPIFFS();
   #endif
 
-  // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
-  // Portanto, se sua tensão de referência for 3.3V, o valor 4095 representa 3.3V, e 0 representa 0V.
-  // Cada unidade no valor representa cerca de 0.0008V (3.3V ÷ 4096).
-  analogReadResolution(12);
-
-  // Inicializa pinos
-  for (int i = 0; i < numSensoresUmidade; i++) {
-    pinMode(pinosUmidade[i], INPUT);
-  }
-  pinMode(BATTERY_PIN, INPUT); // Pino da bateria
-  pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP); // Pino do botão de sair do modo seguro
-  pinMode(LED_PIN, OUTPUT); // LED integrado do ESP32
-  digitalWrite(LED_PIN, LOW); // Desliga o LED integrado
-  Serial.println("Pinos configurados.");
-
-  #if (USE_DISPLAY)
-    setupDisplay();
-  #else
-    Serial.println("Display OLED desativado.");
-  #endif
-
   #if (USE_LORA)
     setupLoRa();
   #else
-    Serial.println("LoRa desativado.");
+    dispmsg("LoRa desativado.");
   #endif
+
+  digitalWrite(LED_PIN, LOW);     // Desliga o LED integrado
 
   #if (USE_DISPLAY)
     display.clearDisplay();
@@ -131,11 +119,7 @@ void loop() {
   if (modoSeguro) {
     Serial.println("Modo seguro ativo. Aguarde comando para sair.");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("Modo seguro ativo");
-      display.display();
+      dispmsg("Modo seguro ativo");
     #endif
     sinalizaErro(MODOSEGURO_PISCA, "rapido");
 
@@ -147,14 +131,14 @@ void loop() {
     if (Serial.available()) {
       String cmd = Serial.readStringUntil('\n');
       cmd.trim(); // Remove espaços em branco
-      Serial.println("Comando recebido: " + cmd);
+      dispmsg("Comando recebido: " + cmd);
       if (cmd == "sair") {
         modoSeguro = false;  // Limpa a flag de modo seguro
-        Serial.println("Saindo do modo seguro.");
+        dispmsg("Saindo do modo seguro.");
         delay(100);
         esp_restart();       // Reinicia no modo normal
       } else if (cmd == "status") {
-        Serial.println("Modo seguro ativo. Aguardando instruções.");
+        dispmsg("Modo seguro ativo. Aguardando instruções.");
       }
     }
     return;  // Evita continuar no loop se estiver em modo seguro
@@ -164,7 +148,7 @@ void loop() {
   #if (USE_WIFI)
     if (WIFI_MODE == WIFI_STA && WiFi.status() != WL_CONNECTED) {
       if (millis() - ultimaTentativaWiFi > INTERVALO_RECONEXAO_WIFI) {
-        Serial.println("Wi-Fi desconectado. Tentando reconectar...");
+        dispmsg("Wi-Fi desconectado. Tentando reconectar...");
         ultimaTentativaWiFi = millis();
         connectToWiFi();
       }
@@ -191,12 +175,8 @@ void loop() {
       logToSPIFFS("Entrando em modo de sono profundo por 10 minutos...");
     #endif
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("DeepSleep por 10 min.");
-      display.display();
-      delay(3000);
+      dispmsg("DeepSleep por 10 min.");
+      delay(2000);
     #endif
     esp_sleep_enable_timer_wakeup(TEMPO_ENVIO * 60000000); // microsegundos
     esp_deep_sleep_start(); // Entra em sono profundo
@@ -204,14 +184,8 @@ void loop() {
   #else
     Serial.println("Aguardando 10 minutos antes do próximo envio...");
     #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("Aguardando 10 min.");
-      display.setCursor(6 * 0, 8 * 1);
-      display.print("antes do próx. envio.");
-      display.display();
-      delay(3000);
+      dispmsg("Aguardando 10 min.", 0);
+      dispmsg("antes do próx. envio.", 1);
 
       // Desliga o display após o envio
       displayOnOff("off");
