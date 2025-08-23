@@ -8,45 +8,6 @@
 
 
 /**
- * @brief Configura a Serial com timeout.
- * @return [Boolean] true se a Serial foi iniciada corretamente, false caso contrário.
- */
-bool setupSerial() {
-  unsigned long startMillis = millis();
-
-  Serial.begin(BAUD_RATE);
-
-  while (!Serial && millis() - startMillis < SERIAL_TIMEOUT_MS) {
-    delay(100);
-  }
-
-  if (!Serial) {
-    showError("Serial não iniciada.", 1);
-    sinalizaErro(ERROSERIAL_PISCA, "rapido");
-    delay(2000);
-    /*
-    while (true) {
-      sinalizaErro(ERROSERIAL_PISCA, "rapido");
-      delay(2000);
-    }
-    */
-    return false; // Retorna falso se a Serial não foi iniciada
-  } else {
-    Serial.println("Serial iniciada com sucesso.");
-    #if (USE_DISPLAY)
-      displayOnOff();
-      display.clearDisplay();
-      display.setCursor(6 * 0, 8 * 0);
-      display.print("Serial iniciada.");
-      display.display();
-      delay(2000);
-    #endif
-    return true;
-  }
-}
-
-
-/**
  * @brief Configura o Wi-Fi conforme o modo definido (AP ou STA).
  * Remove credenciais, define modo, configura AP ou inicia conexão como cliente.
  */
@@ -59,17 +20,10 @@ void setupWiFi() {
     WiFi.softAP(ssid, password);
     IPAddress IP = WiFi.softAPIP();
 
-    Serial.println("Ponto de acesso criado: " + String(ssid));
-    Serial.println("IP Local: " + IP.toString());
-    #if USE_DISPLAY
-      dispmsg("AP: " + String(ssid));
-      dispmsg("IP: " + IP.toString(), 1);
-    #endif
+    dispmsg("AP: " + String(ssid));
+    dispmsg("IP: " + IP.toString(), 1);
   } else if (WIFI_MODE == WIFI_STA) {
-    Serial.println("Conectando ao Wi-Fi...");
-    #if USE_DISPLAY
-      dispmsg("Conectando ao Wi-Fi...");
-    #endif
+    dispmsg("Conectando ao Wi-Fi...");
 
     // Configura o Wi-Fi como cliente
     WiFi.setSleep(false);           // Ativa/Desativa o modo de sono do Wi-Fi
@@ -79,7 +33,6 @@ void setupWiFi() {
     WiFi.begin(ssid, password);     // Conecta como cliente
     connectToWiFi();                // Faz a conexão se for estação
   } else {
-    Serial.println("Modo Wi-Fi inválido.");
     showError("Modo Wi-Fi inválido.", 1);
     sinalizaErro(ERRO_WIFI_PISCA, "rapido");
     delay(2000);
@@ -100,10 +53,7 @@ void setupSPIFFS() {
       showError("SPIFFS não montado.", 1);
     }
   } else {
-    Serial.println("SPIFFS montado com sucesso.");
-    #if (USE_DISPLAY)
-      dispmsg("SPIFFS sucesso.");
-    #endif
+    dispmsg("SPIFFS sucesso.");
   }
 }
 
@@ -114,10 +64,7 @@ void setupSPIFFS() {
  * Sinaliza erro e entra em loop caso não consiga inicializar.
  */
 void setupLoRa() {
-  Serial.println("Inicializando LoRa...");
-  #if (USE_DISPLAY)
-    dispmsg("Inicializando LoRa...");
-  #endif
+  dispmsg("Inicializando LoRa...");
 
   int status = lora.begin();
 
@@ -153,10 +100,7 @@ void setupLoRa() {
       showError("Erro ao definir palavra de sincronização LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    Serial.println("LoRa inicializado com sucesso.");
-    #if (USE_DISPLAY)
-      dispmsg("LoRa sucesso.");
-    #endif
+    dispmsg("LoRa ini sucesso.");
   } else {
     showError(String(status), 2);
     while (true) {
@@ -212,7 +156,55 @@ void iniciarPinos() {
   pinMode(PINO_VEXT, OUTPUT);                      // Pino Vext
   pinMode(OLED_RESET, OUTPUT);                     // Pino de reset do OLED
   analogReadResolution(ANALOG_RESOLUTION);
-  dispmsg("Pinos configurados.");
+  Serial.println("Pinos configurados.");
+}
+
+
+/**
+ * @brief Configura a Serial com timeout.
+ * @return [Boolean] true se a Serial foi iniciada corretamente, false caso contrário.
+ */
+bool setupSerial() {
+  unsigned long startMillis = millis();
+
+  Serial.begin(BAUD_RATE);
+
+  while (!Serial && millis() - startMillis < SERIAL_TIMEOUT_MS) {
+    delay(100);
+  }
+
+  // Inicializa pinos
+  iniciarPinos();
+
+  #if (USE_DISPLAY)
+    setupDisplay();
+  #else
+    dispmsg("Display OLED desativado.");
+  #endif
+
+  if (!Serial) {
+    showError("Serial não iniciada.", 1);
+    sinalizaErro(ERROSERIAL_PISCA, "rapido");
+    delay(2000);
+    /*
+    while (true) {
+      sinalizaErro(ERROSERIAL_PISCA, "rapido");
+      delay(2000);
+    }
+    */
+    return false; // Retorna falso se a Serial não foi iniciada
+  } else {
+    Serial.println("Serial iniciada com sucesso.");
+    #if (USE_DISPLAY)
+      displayOnOff();
+      display.clearDisplay();
+      display.setCursor(6 * 0, 8 * 0);
+      display.print("Serial iniciada.");
+      display.display();
+      delay(2000);
+    #endif
+    return true;
+  }
 }
 
 #endif

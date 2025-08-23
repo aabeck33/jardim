@@ -91,12 +91,8 @@ void verificarBotaoModoSeguro() {
 void connectToWiFi() {
   unsigned long startMillis = millis();
 
-  Serial.print("Conectando ao Wi-Fi: ");
-  Serial.println(ssid);
-  #if (USE_DISPLAY)
-    dispmsg("Conectando ao Wi-Fi:");
-    dispmsg(ssid, 1);
-  #endif
+  dispmsg("Conectando ao Wi-Fi:");
+  dispmsg(ssid, 1);
 
   WiFi.reconnect();     // força nova tentativa ativa
   while (WiFi.status() != WL_CONNECTED && millis() - startMillis < WIFI_TIMEOUT) {
@@ -142,9 +138,7 @@ void verificarUsoRAM() {
   Serial.printf("[RAM] RAM externa livre: %u bytes\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   Serial.printf("[RAM] Total RAM livre: %u bytes\n", heapLivre + heapInterno + heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   
-  #if (USE_DISPLAY)
-    dispmsg("RAM livre: " + String(heapLivre) + " bytes");
-  #endif
+  dispmsg("RAM livre: " + String(heapLivre) + " bytes");
 
   #if (USE_SPIFFS && DEBUG_MODE)
     logToSPIFFS("Heap livre: " + String(heapLivre) + " bytes");
@@ -153,20 +147,13 @@ void verificarUsoRAM() {
   #endif
 
   if (heapLivre < 10000) { // Se menos de 10KB livre
-    Serial.println("⚠️ ALERTA: Memória RAM baixa!");
-    #if (USE_DISPLAY)
-      dispmsg("⚠️ Memória RAM baixa!");
-    #endif
+    dispmsg("⚠️ Memória RAM baixa!");
 
     #if (USE_SPIFFS)
       logToSPIFFS("⚠️ Memória RAM baixa!");
     #endif
   } else {
-    Serial.println("Memória RAM OK.");
-    #if (USE_DISPLAY)
-      dispmsg("Memória RAM OK.");
-      delay(2000);
-    #endif
+    dispmsg("Memória RAM OK.");
   }
 }
 
@@ -194,6 +181,7 @@ void dispmsg(const String &msg, const uint8_t linha, const uint8_t coluna, const
     }
     display.print(msg);
     display.display();
+    delay(3000);
   #endif
 }
 
@@ -213,21 +201,12 @@ void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc) {
 
   // Se ultrapassar limite
   if (percentual > JSON_USAGE_WARNING_PERCENT) {
-    Serial.println("⚠️ ALERTA: Uso de JSON muito alto!");
-
-    #if (USE_DISPLAY)
-      dispmsg("⚠️ ALERTA: Uso de JSON alto!");
-    #endif
-
+    dispmsg("⚠️ ALERTA: Uso de JSON alto!");
     #if (USE_SPIFFS)
       logToSPIFFS("⚠️ ALERTA: Uso de JSON muito alto!");
     #endif
-  } else {  
-    Serial.println("Uso de JSON dentro do limite.");
-    #if (USE_DISPLAY)
-      dispmsg("Uso de JSON OK.");
-      delay(2000);
-    #endif
+  } else {
+    dispmsg("Uso de JSON OK.");
   }
 }
 
@@ -301,10 +280,7 @@ void aguardar(const uint8_t tempo) {
   unsigned long interval = 1000;    // 1 segundo
   unsigned long elapsed = 0;
 
-  Serial.println("Aguardando " + String(tempo) + " minutos...");
-  #if (USE_DISPLAY)
-    dispmsg("Aguardando " + String(tempo) + " minutos...");
-  #endif
+  dispmsg("Aguardando " + String(tempo) + " minutos...");
 
   while (elapsed < tempo * 60000) {
     esp_task_wdt_reset(); // Alimenta o watchdog
@@ -378,10 +354,7 @@ String coletarDados() {
     umidade.add(leitura);
   }
 
-  Serial.println("Dados coletados.");
-  #if (USE_DISPLAY)
-    dispmsg("Dados coletados.");
-  #endif
+  dispmsg("Dados coletados.");
 
   // Verifica uso de memória do JSON
   verificarUsoJson(dados);
@@ -425,18 +398,13 @@ void printLog() {
  * @param payload [String] JSON com os dados a serem enviados.
  */
 void enviarDados(const String &payload) {
-  Serial.println("Enviando dados: " + payload);
-  #if (USE_DISPLAY)
-    dispmsg("Enviando dados.......");
-  #endif
+  dispmsg("Enviando dados.......");
+  Serial.println(payload);
 
   // Enviar via LoRa
   int status = lora.transmit(payload.c_str());
   if (status == RADIOLIB_ERR_NONE) {
-    Serial.println("Dados enviados com sucesso.");
-    #if (USE_DISPLAY)
-      dispmsg("Dados enviados.");
-    #endif
+    dispmsg("Dados enviados.");
   } else {
     showError(String(status), 2);
   }
@@ -450,7 +418,7 @@ void resetOLED() {
   delay(150);
   digitalWrite(OLED_RESET, HIGH);
   delay(150);
-  dispmsg("Display resetado.");
+  Serial.println("Display resetado.");
 }
 
 /**
@@ -460,11 +428,11 @@ void VextOnOff(const String &state) {
   if (state == "On") {
     digitalWrite(PINO_VEXT, LOW);
     delay(150);
-    dispmsg("Circuite Vext ligado.");
+    Serial.println("Circuito Vext ligado.");
   } else {
     digitalWrite(PINO_VEXT, HIGH);
     delay(150);
-    dispmsg("Circuite Vext desligado.");
+    Serial.println("Circuito Vext desligado.");
   }
 }
 

@@ -56,32 +56,33 @@ void setup() {
   esp_task_wdt_add(NULL); // adiciona a tarefa atual - setup() - ao WDT
 
   #if (USE_SERIAL)
+    // Inicia a Serial, todos os pinos e o display se necessário.
     serialOk = setupSerial();
 
     Serial.println("Inicializando " + String(NOME_PROJETO) + " - " + String(VERSAO_FIRMWARE));
     Serial.println("Dispositivo: " + String(DISPOSITIVO));
     Serial.println("Tipo: " + String(TIPO_DISPOSITIVO));
-  #endif
+  #else
+    serialOk = false;
 
-  // Inicializa pinos
-  iniciarPinos();
+    // Inicializa pinos
+    iniciarPinos();
+
+    #if (USE_DISPLAY)
+      setupDisplay();
+    #else
+      dispmsg("Display OLED desativado.");
+    #endif
+
+  #endif
 
   // Configura modo seguro
   if (modoSeguro) {
     dispmsg("Iniciando em MODO SEGURO - SetUp simplificado.");
-    #if (USE_DISPLAY)
-      setupDisplay();
-    #endif
     // Não inicializa sensores, LoRa etc.
     // Aguarda comando via serial ou botão para sair do modo seguro
     return;
   }
-
-  #if (USE_DISPLAY)
-    setupDisplay();
-  #else
-    dispmsg("Display OLED desativado.");
-  #endif
 
   #if (USE_WIFI)
     setupWiFi();
@@ -170,13 +171,9 @@ void loop() {
   }
 
   #if (USE_DEEP_SLEEP)
-    Serial.println("Entrando em modo de sono profundo por 10 minutos...");
+    dispmsg("DeepSleep por 10 min.");
     #if (USE_SPIFFS && DEBUG_MODE)
       logToSPIFFS("Entrando em modo de sono profundo por 10 minutos...");
-    #endif
-    #if (USE_DISPLAY)
-      dispmsg("DeepSleep por 10 min.");
-      delay(2000);
     #endif
     esp_sleep_enable_timer_wakeup(TEMPO_ENVIO * 60000000); // microsegundos
     esp_deep_sleep_start(); // Entra em sono profundo

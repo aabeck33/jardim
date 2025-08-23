@@ -31,41 +31,47 @@
 #define USE_LORA true           // Usar LoRa para comunicação
 #define USE_BATTERY false       // Usar monitoramento da bateria
 #define USE_ENCRYPTION true     // Usar encriptação
-#define USE_DEEP_SLEEP false    // Usar sono profundo para economia de energia
+#define USE_DEEP_SLEEP true    // Usar sono profundo para economia de energia
 #define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
 #define USE_WIFI false          // Usar Wi-Fi para comunicação
 #define USE_SERIAL true         // Usar Serial para depuração
 #define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
+// Dispositivos internos
 #define OLED_SDA 17
 #define OLED_SCL 18
+#define OLED_RESET 21                          // 21 ou -1 para Reset por software
+constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
+constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoramento da bateria
 #define LORA_NSS 8
 #define LORA_DIO1 14
 #define LORA_RST 12
 #define LORA_BUSY 13
+constexpr uint8_t LED_PIN = 35;                // Pino do LED embutido (GPIO 35)
+constexpr uint8_t PINO_VEXT = 36;              // Pino para ligar o circuito Vext
 
+// GPIO
+constexpr uint8_t PINO_BOTAO_SAIR_SEGURO = 33;
 
 // === Variáveis e Constantes Globais ===
+// Identificação:
 constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
 constexpr const char* TIPO_DISPOSITIVO = "ESP32V3";
 constexpr const char* VERSAO_FIRMWARE = "0.0.2-alpha"; // Versão do firmware
 constexpr const char* ssid = "aabeck-ESP32";           // SSID do Wi-Fi
 constexpr const char* password = "EbSePc3k2&";         // Senha do Wi-Fi
-constexpr int8_t OLED_RESET = 21;                      // 21 ou -1 para Reset por software
+
 constexpr size_t JSON_DOC_SIZE = 512;                  // Tamanho alocado
 constexpr size_t JSON_USAGE_WARNING_PERCENT = 85;      // Percentual de uso que aciona o alerta
 constexpr size_t TEMPO_ENVIO = 10;                     // Tempo de envio em minutos
 constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação XOR simples
-constexpr uint8_t SCREEN_ADDRESS = 0x3C;               // Endereço I2C do OLED
 // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
 constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
 constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
-constexpr uint8_t VBAT_READ = 1;                       // Pino analógico para monitoramento da bateria
 constexpr uint32_t BAUD_RATE = 115200;                 // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
-constexpr uint8_t LED_PIN = 35;                        // Pino do LED embutido (GPIO 35)
-constexpr uint8_t PINO_VEXT = 36;                      // Pino para ligar o circuito Vext
+
 // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
 // Portanto, se sua tensão de referência for 3.3V, o valor 4095 representa 3.3V, e 0 representa 0V.
 // Cada unidade no valor representa cerca de 0.0008V (3.3V ÷ 4096).
@@ -74,11 +80,11 @@ constexpr uint8_t ANALOG_RESOLUTION = 12;
 // Pinos somente digitais: GPIO 33,  34, 38, 39, 40, 42, 42, 45, 46, 47?, 48?
 constexpr int pinosEntrada[] = {2, 3, 4, 5, 6, 7};
 constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
-// Obs: Evite usar GPIOs 34 a 39 para saída digital, eles são apenas de entrada analógica.
-constexpr uint8_t PINO_BOTAO_SAIR_SEGURO = 33;
+
 // Configuração do LoRa
 constexpr float freqLoRa = 915.0;   // Frequência em MHz - Banda ISM para América do Sul
 constexpr int txPower = 14;         // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm
+
 // Configuração do watchdog
 constexpr uint32_t WDT_TIMEOUT_MS = 60000;             // Timeout do watchdog em milissegundos (1 minuto)
 // Configuração do SPIFFS
