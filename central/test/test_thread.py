@@ -1,7 +1,7 @@
 import time
 import threading
-import keyboard
-from pynput import mouse
+#import keyboard
+from pynput import mouse, keyboard
 
 
 # Dicionário para armazenar o último "batimento" de cada thread
@@ -10,48 +10,69 @@ heartbeat_timeout = 10
 heartbeat_lock = threading.Lock()
 # Flags de parada
 stop_flags = {"teclado": threading.Event(), "mouse": threading.Event()}
-
+# Contador de reinicializações
+restart_count = {"teclado": 0, "mouse": 0}
 
 
 def listar_threads():
-    print("Threads Python ativas:")
+    print("\n=== Threads Python ativas ===")
     for t in threading.enumerate():
         print(f"Nome: {t.name}, ID: {t.ident}")
+    print("=============================\n")
 
 
 def keyboard_listen(stop_event):
-    print("Pressione qualquer tecla para executar a função.")
+    print("[Teclado] Thread iniciada.")
 
-    def on_key(event):
-        if event.event_type == keyboard.KEY_DOWN:
-            print(f"Tecla {event.name} pressionada! Executando função...")
-            # Aqui você chama sua função
+    def on_press(key):
+        try:
+            print(f"[Teclado] Tecla {key.char} pressionada!")
+        except AttributeError:
+            print(f"[Teclado] Tecla especial {key} pressionada!")
+
         # Atualiza heartbeat sempre que há evento
         with heartbeat_lock:
             heartbeat["teclado"] = time.time()
 
-    keyboard.hook(on_key)
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
 
     # Mantém thread ativa até pedir para parar
-    while not stop_event.is_set():
-        with heartbeat_lock:
-            heartbeat["teclado"] = time.time()
-        time.sleep(0.2)
-
-    keyboard.unhook_all()
+    try:
+        while not stop_event.is_set():
+            time.sleep(0.2)
+            print(stop_event.is_set())
+            with heartbeat_lock:
+                heartbeat["teclado"] = time.time()
+        print("[Teclado] Sinal de parada recebido.")
+    finally:
+        listener.stop()
+        listener.join()
+        print("[Teclado] Thread finalizada com sucesso.")
 
 
 def mouse_listen(stop_event):
+    print("[Mouse] Thread iniciada.")
+
     def on_click(x, y, button, pressed):
         if pressed:
-            print(f"Mouse {button} pressionado em ({x}, {y})")
+            print(f"[Mouse] Clique detectado {button} em ({x}, {y})")
             # Chame sua função aqui
+        with heartbeat_lock:
+            heartbeat["mouse"] = time.time()
 
-    with mouse.Listener(on_click=on_click) as listener:
+    listener = mouse.Listener(on_click=on_click)
+    listener.start()
+
+    try:
         while not stop_event.is_set():
             with heartbeat_lock:
                 heartbeat["mouse"] = time.time()
             time.sleep(0.2)
+    finally:
+        listener.stop()
+        listener.join()
+        print("[Mouse] Thread finalizada com sucesso.")
 
 
 def start_thread(target_func, name, stop_event):
@@ -60,7 +81,33 @@ def start_thread(target_func, name, stop_event):
     return t
 
 
+def restart_thread(name, target_func, old_thread, stop_event_key):
+    print(f"[{name}] Reiniciando...")
+
+    # pede para parar
+    stop_flags[stop_event_key].set()
+    old_thread.join(timeout=15)
+
+    if old_thread.is_alive():
+        print(f"[{name}] ⚠️ Thread não finalizou no tempo esperado!")
+
+    restart_count[stop_event_key] += 1
+    print(f"[{name}] Reinicializações: {restart_count[stop_event_key]}")
+
+    # cria nova flag
+    stop_flags[stop_event_key] = threading.Event()
+
+    # inicia nova thread
+    new_thread = start_thread(target_func, f"{name}_aaBeck", stop_flags[stop_event_key])
+
+    with heartbeat_lock:
+        heartbeat[stop_event_key] = time.time()
+
+    return new_thread
+
+
 if __name__ == "__main__":
+    print("[Main] Thread iniciada.")
     # Inicializa os heartbeats
     heartbeat["teclado"] = time.time()
     heartbeat["mouse"] = time.time()
@@ -75,22 +122,16 @@ if __name__ == "__main__":
             now = time.time()
 
             if now - heartbeat["teclado"] > heartbeat_timeout or not t1.is_alive():
-                stop_flags["teclado"].set()
-                t1.join(timeout=2)
-                stop_flags["teclado"] = threading.Event()
-                t1 = start_thread(keyboard_listen, "Teclado_aaBeck", stop_flags["teclado"])
-                with heartbeat_lock:
-                    heartbeat["teclado"] = time.time()
+                t1 = restart_thread("Teclado", keyboard_listen, t1, "teclado")
             if now - heartbeat["mouse"] > heartbeat_timeout or not t2.is_alive():
-                stop_flags["mouse"].set()
-                t2.join(timeout=2)
-                stop_flags["mouse"] = threading.Event()
-                t2 = start_thread(mouse_listen, "Mouse_aaBeck", stop_flags["mouse"])
-                with heartbeat_lock:
-                    heartbeat["mouse"] = time.time()
+                t2 = restart_thread("Mouse", mouse_listen, t2, "mouse")
+
             time.sleep(5)
+
     except KeyboardInterrupt:
+        print("\n[Main] Encerrando todas as threads...")
         stop_flags["teclado"].set()
         stop_flags["mouse"].set()
-        t1.join(timeout=2)
-        t2.join(timeout=2)
+        t1.join(timeout=3)
+        t2.join(timeout=3)
+        print("[Main] Finalizado com segurança.")
