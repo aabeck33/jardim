@@ -6,11 +6,13 @@
 # Requisitos:
 # - Biblioteca pyserial: pip install pyserial
 # - Biblioteca RPi.GPIO: pip install RPi.GPIO
-# - Configurar a serial do Raspberry Pi (raspi-config)
 # - Desabilitar bluetooth se estiver ativo (afeta /dev/serial0) - sudo raspi-config
 #        editar o arquivo /boot/firmware/config.txt
 #        adicionar: dtoverlay=pi3-disable-bt
-# - Conectar os pinos M0 e M1 do E220 aos GPIO17 e GPIO27 do Raspberry Pi
+# - Desabilitar a porta serial do Raspberry Pi (afeta /dev/serial0) - sudo raspi-config
+#        Interfacing Options -> Serial -> No (login shell) -> Yes (enable serial port)
+# - Conectar os pinos M0 e M1 do E220 aos GPIO17 e GPIO27 do Raspberry Pi respectivamente
+# - Conectar o pino AUX do E220 ao GPIO25 do Raspberry Pi
 # - Conectar TX do E220 ao RX do Raspberry Pi e RX do E220 ao TX do Raspberry Pi
 # - Alimentar o E220 com 3.3V conforme especificação
 # - Documentação do E220: https://www.waveshare.com/w/upload/0/0f/E220-900M30S_Datasheet_V1.3.pdf
@@ -21,60 +23,72 @@ import time
 import RPi.GPIO as GPIO
 
 
-# --- Mapeamento de Parâmetros ---
-# Este dicionário traduz o valor do baud rate para o texto correspondente
-BAUD_TABLE = {
-    0b000: 1200,
-    0b001: 2400,
-    0b010: 4800,
-    0b011: 9600,
-    0b100: 19200,
-    0b101: 38400,
-    0b110: 57600,
-    0b111: 115200,
-}
+power_table_r = {
+            0b00: 30,   # Padrão
+            0b01: 27,
+            0b10: 24,
+            0b11: 21
+        }
 
-# Este dicionário traduz o valor da air data rate para o texto correspondente
-AIR_RATE_TABLE = {
-    0b000: "0.3k",
-    0b001: "1.2k",
-    0b010: "2.4k",
-    0b011: "4.8k",
-    0b100: "9.6k",
-    0b101: "19.2k",
-    0b110: "38.4k",
-    0b111: "62.5k",
-}
+power_table_w = {
+            30: 0b00,   # Padrão
+            27: 0b01,
+            24: 0b10,
+            21: 0b11
+        }
 
-# Este dicionário traduz o valor da potência para o texto correspondente
-POWER_MAPr = {
-    0b00: "30dBm",  # 30dBm
-    0b01: "27dBm",  # 27dBm
-    0b10: "24dBm",  # 24dBm
-    0b11: "21dBm",  # 21dBm
-}
+speed_table_r = {
+            0b000: 1200,
+            0b001: 2400,
+            0b010: 4800,
+            0b011: 9600,  # Padrão
+            0b100: 19200,
+            0b101: 38400,
+            0b110: 57600,
+            0b111: 115200,
+        }
 
+speed_table_w = {
+            1200: 0b000,
+            2400: 0b001,
+            4800: 0b010,
+            9600: 0b011,  # Padrão
+            19200: 0b100,
+            38400: 0b101,
+            57600: 0b110,
+            115200: 0b111,
+        }
 
-# --- Mapeamento de Parâmetros ---
-# Este dicionário traduz a potência em dBm para o byte de configuração
-POWER_MAP = {
-    30: 0x00,  # 30dBm
-    27: 0x01,  # 27dBm
-    24: 0x02,  # 24dBm
-    21: 0x03,  # 21dBm
-}
+air_rate_table_r = {
+            0b000: 0.3,
+            0b001: 1.2,
+            0b010: 2.4,
+            0b011: 4.8,
+            0b100: 9.6,
+            0b101: 19.2
+        }
 
-# Este dicionário traduz o baud rate para o byte de configuração
-SPEED_MAP = {
-    1200: 0x00,
-    2400: 0x01,
-    4800: 0x02,
-    9600: 0x03,  # Padrão
-    19200: 0x04,
-    38400: 0x05,
-    57600: 0x06,
-    115200: 0x07,
-}
+air_rate_table_w = {
+            0.3: 0b000,
+            1.2: 0b001,
+            2.4: 0b010,
+            4.8: 0b011,
+            9.6: 0b100,
+            19.2: 0b101
+        }
+
+parity_table_r = {
+            0b00: "8N1",
+            0b01: "8O1",
+            0b10: "8E1"
+        }
+
+parity_table_w = {
+            "8N1": 0b00,
+            "8O1": 0b01,
+            "8E1": 0b10
+        }
+
 
 def set_mode(mode):
     """Define o modo do módulo E220 (M0, M1).
@@ -151,12 +165,12 @@ def read_parameters(ser):
 
         config = {
             'address': address,
-            'baud_rate': baud_from_speed(speed),
-            'parity': parity_from_speed(speed),
-            'air_data_rate': air_rate_from_speed(speed),
+            'baud_rate': speed_table_r[(speed >> 5) & 0b111],
+            'parity': parity_table_r[(speed >> 3) & 0b11],
+            'air_data_rate': air_rate_table_r[speed & 0b111],
             'channel': chan,
             'frequency_mhz': freq,
-            'tx_power': tx_power_from_option(option)
+            'tx_power': power_table_r[option & 0b11]
         }
 
         print("\n--- [E220] Configurações Atuais do Módulo ---")
@@ -225,56 +239,41 @@ def write_parameters(ser, params):
         print("[E220] Falha ao escrever parâmetros")
         return False
 
-
-def baud_from_speed(speed_byte):
-    baud_table = {
-        0b000: 1200, 0b001: 2400, 0b010: 4800, 0b011: 9600,
-        0b100: 19200, 0b101: 38400, 0b110: 57600, 0b111: 115200
-    }
-    return baud_table[(speed_byte >> 5) & 0b111]
-
-
-def parity_from_speed(speed_byte):
-    parity_table = {
-        0b00: "8N1",  # 8 bits, No parity, 1 stop bit
-        0b01: "8O1",  # 8 bits, Odd parity, 1 stop bit
-        0b10: "8E1",  # 8 bits, Even parity, 1 stop bit
-        0b11: "8N1"   # 8 bits, No parity, 1 stop bits (igual 00)
-    }
-    return parity_table[(speed_byte >> 3) & 0b11]
-
-
-def air_rate_from_speed(speed_byte):
-    air_table = {
-        0b000: 0.3, 0b001: 1.2, 0b010: 2.4, 0b011: 4.8,
-        0b100: 9.6, 0b101: 19.2
-    }
-    return air_table[speed_byte & 0b111]
-
-
-def tx_power_from_option(option_byte):
-    power_table = {0b00: 30, 0b01: 27, 0b10: 24, 0b11: 21}
-    return power_table[option_byte & 0b11]
-
-
 def write_parameters_dynamic(ser, **kwargs):
     """
-    Escreve parâmetros de forma dinâmica no módulo E220.
+    Escreve parâmetros de forma dinâmica no módulo E220. CCombinando com os valores padrão
+    para os parâmetros não especificados.
 
     Args:
         ser (serial.Serial): Objeto da conexão serial.
         **kwargs: Parâmetros a serem atualizados (por exemplo, freq_mhz=915, power=30).
+            freq_mhz (float): Frequência em MHz (850.125 a 929.575 para 900T30D).
+            address (int): Endereço do dispositivo (0x0000 a 0xFFFF).
+            power_dbm (int): Potência de transmissão em dBm (30, 27, 24, 21).
+            speed (int): Velocidade de comunicação em bps (1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200).
+            parity (str): Paridade ("8N1", "8O1", "8E1").
+            air_data_rate (float): Air Data Rate em kbps (0.3, 1.2, 2.4, 4.8, 9.6, 19.2).
+    Returns:
+        bytes: Resposta do módulo E220 após a escrita dos parâmetros, ou None em caso de falha.
     """
+    set_mode("config")
+
+    if cfg.DEBUG_MODE:
+        print("[E220] Limpando buffers...")
     ser.flushInput() # Limpa o buffer de entrada
     ser.flushOutput() # Limpa o buffer de saída
 
-    # Aguarda o pino AUX ficar HIGH
+    if cfg.DEBUG_MODE:
+        print("[E220] Aguardando pino AUX...")
     while GPIO.input(cfg.PIN_AUX) == GPIO.LOW:
         time.sleep(0.01)
 
     # Cria uma cópia mutável dos parâmetros padrão
     current_params = bytearray(cfg.DEFAULT_PARAMS)
     
+    if cfg.DEBUG_MODE:
+        print(f"[E220] Parâmetros padrão: {current_params.hex()}")
+
     # Processa os argumentos dinâmicos
     if 'freq_mhz' in kwargs:
         # Calcula o canal a partir da frequência (para 900T30D)
@@ -291,30 +290,57 @@ def write_parameters_dynamic(ser, **kwargs):
 
     if 'power_dbm' in kwargs:
         power = kwargs['power_dbm']
-        if power in POWER_MAP:
-            current_params[4] = (current_params[4] & 0xFC) | POWER_MAP[power]
+        if power in power_table_w:
+            current_params[4] = (current_params[4] & 0xFC) | power_table_w[power]
             print(f"Potência ajustada para {power} dBm")
         else:
             print(f"Aviso: Potência de {power} dBm não suportada.")
 
     if 'speed' in kwargs:
         speed = kwargs['speed']
-        if speed in SPEED_MAP:
+        if speed in speed_table_w:
             # Mantém os outros bits de SPEED e atualiza apenas o baud rate
-            current_params[2] = (current_params[2] & 0xF8) | SPEED_MAP[speed]
+            current_params[2] = (current_params[2] & 0xF8) | speed_table_w[speed]
             print(f"Baud rate ajustado para {speed} bps")
         else:
             print(f"Aviso: Baud rate de {speed} bps não suportado.")
 
-    # Monta o comando final de escrita
+    if 'parity' in kwargs:
+        parity = kwargs['parity']
+        if parity in parity_table_w:
+            current_params[2] = (current_params[2] & 0xE7) | (parity_table_w[parity] << 3)
+            print(f"Paridade ajustada para {parity}")
+        else:
+            print(f"Aviso: Paridade '{parity}' não suportada.")
+
+    if 'air_data_rate' in kwargs:
+        air_rate = kwargs['air_data_rate']
+        if air_rate in air_rate_table_w:
+            current_params[2] = (current_params[2] & 0xF8) | air_rate_table_w[air_rate]
+            print(f"Air Data Rate ajustado para {air_rate} kbps")
+        else:
+            print(f"Aviso: Air Data Rate de {air_rate} kbps não suportado.")
+
+    if cfg.DEBUG_MODE:
+        print(f"[E220] Parâmetros finais a serem escritos: {current_params.hex()}")
+
+    if cfg.DEBUG_MODE:
+        print("[E220] Enviando comando de escrita...")
     cmd = bytes([0xC0, 0x00, 0x08]) + current_params
     ser.write(cmd)
-
-    # Aguarda a resposta
     time.sleep(2)
+
+    if cfg.DEBUG_MODE:
+        print("[E220] Enviando comando de leitura...")
     resp = ser.read(ser.in_waiting)
     
-    if len(resp) == 8 and resp[0] == 0xC1:
+    if cfg.DEBUG_MODE:
+        print(f"Resposta bruta: {resp.hex()}")
+    
+    set_mode("normal")
+
+    # A resposta de sucesso para escrita é 11 bytes: 0xC1 0x00 0x08 + 8 bytes de dados
+    if len(resp) == 11 and resp[0] == 0xC1:
         print("[E220] Parâmetros escritos com sucesso!")
         return resp
     else:
@@ -330,14 +356,10 @@ if __name__ == "__main__":
         GPIO.setup(cfg.PIN_M1, GPIO.OUT)
         GPIO.setup(cfg.PIN_AUX, GPIO.IN)
 
-        # Porta serial do Raspberry (Lembrar de desativar o bluetooth se estiver usando /dev/serial0)
+        
         ser = serial.Serial(cfg.PORT, baudrate=cfg.BAUDRATE, timeout=1, bytesize=8, parity='N', stopbits=1)
 
-        print("Lendo configurações do módulo...")
         read_parameters(ser)
-
-        # Voltar para modo normal
-        set_mode("normal")
 
     except KeyboardInterrupt:
         pass
