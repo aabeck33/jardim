@@ -41,10 +41,8 @@ def keyboard_listen(stop_event):
     try:
         while not stop_event.is_set():
             time.sleep(0.2)
-            print(stop_event.is_set())
             with heartbeat_lock:
                 heartbeat["teclado"] = time.time()
-        print("[Teclado] Sinal de parada recebido.")
     finally:
         listener.stop()
         listener.join()
@@ -70,6 +68,7 @@ def mouse_listen(stop_event):
                 heartbeat["mouse"] = time.time()
             time.sleep(0.2)
     finally:
+        print("[Mouse] Sinal de parada recebido.")
         listener.stop()
         listener.join()
         print("[Mouse] Thread finalizada com sucesso.")
