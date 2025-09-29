@@ -90,7 +90,7 @@ parity_table_w = {
         }
 
 
-def set_mode(mode):
+def set_mode(mode: str):
     """Define o modo do módulo E220 (M0, M1).
 
     Args:
@@ -115,7 +115,7 @@ def set_mode(mode):
     time.sleep(0.5)
 
 
-def read_parameters(ser):
+def read_parameters(ser: serial.Serial):
     """Lê parâmetros atuais do E220.
 
     PParameters:
@@ -189,7 +189,7 @@ def read_parameters(ser):
         return None
 
 
-def write_parameters(ser, params):
+def write_parameters(ser: serial.Serial, params: bytearray):
     """Escreve novos parâmetros no E220 (permanente ou temporário).
 
     Args:
@@ -239,9 +239,9 @@ def write_parameters(ser, params):
         print("[E220] Falha ao escrever parâmetros")
         return False
 
-def write_parameters_dynamic(ser, **kwargs):
+def write_parameters_dynamic(ser: serial.Serial, **kwargs: any):
     """
-    Escreve parâmetros de forma dinâmica no módulo E220. CCombinando com os valores padrão
+    Escreve parâmetros de forma dinâmica no módulo E220. Combinando com os valores padrão
     para os parâmetros não especificados.
 
     Args:
@@ -356,13 +356,20 @@ if __name__ == "__main__":
         GPIO.setup(cfg.PIN_M1, GPIO.OUT)
         GPIO.setup(cfg.PIN_AUX, GPIO.IN)
 
-        
-        ser = serial.Serial(cfg.PORT, baudrate=cfg.BAUDRATE, timeout=1, bytesize=8, parity='N', stopbits=1)
+        ser = serial.Serial(
+            cfg.PORT, 
+            baudrate=cfg.BAUDRATE, 
+            timeout=1, 
+            bytesize=8, 
+            parity='N', 
+            stopbits=1
+        )
+        time.sleep(2)
 
         read_parameters(ser)
 
     except KeyboardInterrupt:
-        pass
+        print("Encerrando...")
     finally:
         if 'ser' in locals() and ser.is_open:
             ser.close()
