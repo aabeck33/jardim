@@ -29,13 +29,7 @@ power_table_r = {
             0b10: 24,
             0b11: 21
         }
-
-power_table_w = {
-            30: 0b00,   # Padrão
-            27: 0b01,
-            24: 0b10,
-            21: 0b11
-        }
+power_table_w = {v: k for k, v in power_table_r.items()}
 
 speed_table_r = {
             0b000: 1200,
@@ -47,17 +41,7 @@ speed_table_r = {
             0b110: 57600,
             0b111: 115200,
         }
-
-speed_table_w = {
-            1200: 0b000,
-            2400: 0b001,
-            4800: 0b010,
-            9600: 0b011,  # Padrão
-            19200: 0b100,
-            38400: 0b101,
-            57600: 0b110,
-            115200: 0b111,
-        }
+speed_table_w = {v: k for k, v in speed_table_r.items()}
 
 air_rate_table_r = {
             0b000: 0.3,
@@ -67,27 +51,14 @@ air_rate_table_r = {
             0b100: 9.6,
             0b101: 19.2
         }
-
-air_rate_table_w = {
-            0.3: 0b000,
-            1.2: 0b001,
-            2.4: 0b010,
-            4.8: 0b011,
-            9.6: 0b100,
-            19.2: 0b101
-        }
+air_rate_table_w = {v: k for k, v in air_rate_table_r.items()}
 
 parity_table_r = {
             0b00: "8N1",
             0b01: "8O1",
             0b10: "8E1"
         }
-
-parity_table_w = {
-            "8N1": 0b00,
-            "8O1": 0b01,
-            "8E1": 0b10
-        }
+parity_table_w = {v: k for k, v in parity_table_r.items()}
 
 
 def set_mode(mode: str):
@@ -115,13 +86,13 @@ def set_mode(mode: str):
     time.sleep(0.5)
 
 
-def read_parameters(ser: serial.Serial):
+def read_parameters(ser: serial.Serial) -> bytes | None:
     """Lê parâmetros atuais do E220.
 
-    PParameters:
-        ser: Instância serial com os parâmetros lidos ou None em caso de falha.
+    Args:
+        ser: Instância serial.
     Returns:
-        Parâmetros lidos ou None em caso de falha.
+        Parâmetros lidos (bytes) ou None em caso de falha.
     """
     set_mode("config")
 
@@ -189,7 +160,7 @@ def read_parameters(ser: serial.Serial):
         return None
 
 
-def write_parameters(ser: serial.Serial, params: bytearray):
+def write_parameters(ser: serial.Serial, params: bytearray) -> bool:
     """Escreve novos parâmetros no E220 (permanente ou temporário).
 
     Args:
@@ -239,7 +210,7 @@ def write_parameters(ser: serial.Serial, params: bytearray):
         print("[E220] Falha ao escrever parâmetros")
         return False
 
-def write_parameters_dynamic(ser: serial.Serial, **kwargs: any):
+def write_parameters_dynamic(ser: serial.Serial, **kwargs: any) -> bool:
     """
     Escreve parâmetros de forma dinâmica no módulo E220. Combinando com os valores padrão
     para os parâmetros não especificados.
@@ -254,7 +225,7 @@ def write_parameters_dynamic(ser: serial.Serial, **kwargs: any):
             parity (str): Paridade ("8N1", "8O1", "8E1").
             air_data_rate (float): Air Data Rate em kbps (0.3, 1.2, 2.4, 4.8, 9.6, 19.2).
     Returns:
-        bytes: Resposta do módulo E220 após a escrita dos parâmetros, ou None em caso de falha.
+        bool: True se a escrita foi bem-sucedida, False caso contrário.
     """
     set_mode("config")
 
@@ -342,20 +313,24 @@ def write_parameters_dynamic(ser: serial.Serial, **kwargs: any):
     # A resposta de sucesso para escrita é 11 bytes: 0xC1 0x00 0x08 + 8 bytes de dados
     if len(resp) == 11 and resp[0] == 0xC1:
         print("[E220] Parâmetros escritos com sucesso!")
-        return resp
+        return True
     else:
         print(f"[E220] Falha ao escrever parâmetros. Resposta inesperada: {resp.hex()}")
-        return None
+        return False
 
 
 if __name__ == "__main__":
     try:
-        # Configuração da GPIO
+        if cfg.DEBUG_MODE:
+            print("Configurando GPIO...")
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(cfg.PIN_M0, GPIO.OUT)
         GPIO.setup(cfg.PIN_M1, GPIO.OUT)
         GPIO.setup(cfg.PIN_AUX, GPIO.IN)
+        time.sleep(0.5)
 
+        if cfg.DEBUG_MODE:
+            print("Iniciando LoRa Controller...")
         ser = serial.Serial(
             cfg.PORT, 
             baudrate=cfg.BAUDRATE, 

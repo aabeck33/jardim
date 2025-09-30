@@ -1,3 +1,4 @@
+import config as cfg
 import time
 import serial
 import requests
@@ -7,18 +8,13 @@ import RPi.GPIO as GPIO
 from lora_receiver import LoRaRcvCont
 from weather_api import get_weather
 from central.decision import decide_irrigation
-from config import BOMBA_PIN
 
-# Configura GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(BOMBA_PIN, GPIO.OUT)
-GPIO.output(BOMBA_PIN, GPIO.LOW)
 
 def aciona_bomba(segundos):
     print(f"💧 Ligando bomba por {segundos} segundos...")
-    GPIO.output(BOMBA_PIN, GPIO.HIGH)
+    GPIO.output(cfg.BOMBA_PIN, GPIO.HIGH)
     time.sleep(segundos)
-    GPIO.output(BOMBA_PIN, GPIO.LOW)
+    GPIO.output(cfg.BOMBA_PIN, GPIO.LOW)
     print("💧 Bomba desligada.")
 
 def main():
@@ -50,7 +46,14 @@ def main():
 
 if __name__ == "__main__":
     try:
+        if cfg.DEBUG_MODE:
+            print("Configurando GPIO...")
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(cfg.BOMBA_PIN, GPIO.OUT)
+        GPIO.output(cfg.BOMBA_PIN, GPIO.LOW)
+
         main()
     except KeyboardInterrupt:
-        GPIO.cleanup()
         print("Encerrado pelo usuário.")
+    finally:
+        GPIO.cleanup()
