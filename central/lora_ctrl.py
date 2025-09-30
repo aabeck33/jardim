@@ -349,3 +349,5 @@ if __name__ == "__main__":
         if 'ser' in locals() and ser.is_open:
             ser.close()
         GPIO.cleanup()
+
+# central/lora_ctrl.py

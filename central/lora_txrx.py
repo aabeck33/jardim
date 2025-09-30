@@ -1,3 +1,5 @@
+# Script para comunicação LoRa utilizando o módulo E220
+
 import config as cfg
 import lora_ctrl as loractrl
 import serial
@@ -76,3 +78,5 @@ if __name__ == "__main__":
         if 'ser' in locals() and ser.is_open:
             ser.close()
         GPIO.cleanup()
+
+# central/lora_txrx.py
