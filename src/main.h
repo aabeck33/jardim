@@ -83,7 +83,7 @@ constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 
 // Configuração do LoRa
 constexpr float freqLoRa = 915.125;   // Frequência em MHz - Banda ISM para América do Sul
-constexpr int txPower = 14;         // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm
+constexpr int txPower = 17;         // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm
 
 // Configuração do watchdog
 constexpr uint32_t WDT_TIMEOUT_MS = 60000;             // Timeout do watchdog em milissegundos (1 minuto)
