@@ -164,7 +164,25 @@ void loop() {
   #else
     enviarDados(payload);
   #endif
-  
+  delay(3000);
+  #if (USE_ENCRYPTION)
+    enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+  #else
+    enviarDados(payload);
+  #endif
+  delay(3000);
+  #if (USE_ENCRYPTION)
+    enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+  #else
+    enviarDados(payload);
+  #endif
+  delay(3000);
+  #if (USE_ENCRYPTION)
+    enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+  #else
+    enviarDados(payload);
+  #endif
+
   // Exibe informações de depuração sobre o uso de memória
   if (serialOk || DEBUG_MODE) {
     verificarUsoRAM();

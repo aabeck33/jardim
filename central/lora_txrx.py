@@ -19,20 +19,23 @@ def send_message(ser: serial.Serial, msg: str):
         print(f"[TX] {msg}")
 
 
-def receive_message(ser: serial.Serial) -> str | None:
-    espera: int = 0
+def receive_message(ser: serial.Serial, timeout: int = 10) -> str | None:
+    start: float = time.time()
+    data: bytes = b""
 
     if cfg.DEBUG_MODE:
         print("Aguardando mensagem...")
-    while not ser.in_waiting and espera < 10:
-        time.sleep(0.5)
-        espera += 1
+    while (time.time() - start) < timeout:
+        if ser.in_waiting:
+            data += ser.read(ser.in_waiting)
+            if data.endswith(b'\n'):
+                break
+        time.sleep(0.05)
 
-    if ser.in_waiting:
-        data = ser.read(ser.in_waiting)
+    if data:
         if cfg.DEBUG_MODE:
-            print(f"[RX] {data.decode('utf-8', errors='ignore')}")
-        return data.decode("utf-8", errors="ignore")
+            print(f"[RX] {data.decode('utf-8', errors='ignore').strip()}")
+        return data.decode("utf-8", errors="ignore").strip()
     else:
         if cfg.DEBUG_MODE:
             print("Nenhuma mensagem recebida.")
@@ -66,7 +69,7 @@ if __name__ == "__main__":
 
         while True:
             print("Enviando mensagem...")
-            send_message(ser, "Hello LoRa E220!")
+            send_message(ser, "Hello LoRa E220!", 15)
             time.sleep(2)
             print("Aguardando resposta...")
             receive_message(ser)
