@@ -69,7 +69,7 @@ constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação
 // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
 constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
 constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
-constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
+constexpr uint32_t BAUD_RATE = 115200;                   // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
 
 // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
@@ -81,9 +81,21 @@ constexpr uint8_t ANALOG_RESOLUTION = 12;
 constexpr int pinosEntrada[] = {2, 3, 4, 5, 6, 7};
 constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 
-// Configuração do LoRa
-constexpr float freqLoRa = 915.125;   // Frequência em MHz - Banda ISM para América do Sul
-constexpr int txPower = 17;         // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm
+// Configuração do LoRa - Os valores aqui precisam estar de acordo com o módulo utilizado
+// e com as regulamentações locais de frequência e potência.
+// Além de isso, os parâmetros de modulação (SF, BW, CR) devem ser ajustados conforme a aplicação,
+// considerando o trade-off entre alcance, taxa de dados e robustez da comunicação.
+// Ainda precisam estar iguais nos dispositivos que irão se comunicar.
+constexpr float freqLoRa = 915.125;    // Frequência em MHz - Banda ISM para América do Sul - 915 a 928 MHz
+constexpr int txPower = 17;            // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm. As opções comuns são 2 a 17 dBm.
+constexpr int8_t sfLoRa = 11;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
+constexpr float bwLoRa = 125.0;        // Largura de banda (em kHz) - Quanto maior, maior taxa / menor alcance. As opções comuns são 125.0, 250.0, 500.0
+constexpr uint8_t crLoRa = 5;          // Taxa de codificação (5 a 8) - 5 equivale a 4/5. (Mais confiável = menor velocidade)
+constexpr uint16_t plLoRa = 8;         // Comprimento do preâmbulo (símbolos) - Quanto maior, mais confiável / menor velocidade. As opções são 6, 8, 10, 12, 14, 16, 18, 20
+constexpr uint16_t swLoRa = 0x12;      // Palavra de sincronização - 0x34 para LoRaWAN público | 0x12 para LoRa privado
+
+// Configuração do Deep Sleep
+constexpr uint32_t DEEP_SLEEP_TIMEOUT_MS = 60000; // Timeout do Deep Sleep em milissegundos (1 minuto)
 
 // Configuração do watchdog
 constexpr uint32_t WDT_TIMEOUT_MS = 60000;             // Timeout do watchdog em milissegundos (1 minuto)

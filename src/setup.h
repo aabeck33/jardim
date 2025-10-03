@@ -62,6 +62,16 @@ void setupSPIFFS() {
  * @brief Inicializa e configura o módulo LoRa.
  * Define frequência, potência, fator de espalhamento, largura de banda, taxa de codificação, preâmbulo e palavra de sincronização.
  * Sinaliza erro e entra em loop caso não consiga inicializar.
+ * 
+ * Fórmula aproximada do air bit rate:
+ * Use isso para estimar a taxa (bits/s):
+ *    Símbolos por segundo (Rs) = BW / 2^SF
+ *    Bits por segundo (Rb) ≈ Rs * SF * (4/(4+CR))
+ * Exemplos:
+ *    SF7, BW=125 kHz, CR=4/5 → Rs = 125000/128 ≈ 976.56 sps
+ *    Rb ≈ 976.56 * 7 * 0.8 ≈ 5.47 kbps
+ *    SF12, BW=125 kHz, CR=4/5 → Rs = 125000/4096 ≈ 30.52 sps
+ *    Rb ≈ 30.52 * 12 * 0.8 ≈ 292 bps
  */
 void setupLoRa() {
   dispmsg("Inicializando LoRa...");
@@ -70,37 +80,37 @@ void setupLoRa() {
 
   if (status == RADIOLIB_ERR_NONE) {
     // Configuração do LoRa
-    if (lora.setFrequency(freqLoRa) != RADIOLIB_ERR_NONE) { // Frequência em MHz (ajuste conforme sua região)
+    if (lora.setFrequency(freqLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir frequência LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    if (lora.setOutputPower(txPower) != RADIOLIB_ERR_NONE) { // Potência de transmissão
+    if (lora.setOutputPower(txPower) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir potência de transmissão LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    if (lora.setSpreadingFactor(7) != RADIOLIB_ERR_NONE) { // Fator de espalhamento
+    if (lora.setSpreadingFactor(sfLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir fator de espalhamento LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    if (lora.setBandwidth(125.0) != RADIOLIB_ERR_NONE) { // Largura de banda
+    if (lora.setBandwidth(bwLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir largura de banda LoRa.", 1);
+      sinalizaErro(ERROLORA_PISCA, "rapido");
+    }
+    if (lora.setCodingRate(crLoRa) != RADIOLIB_ERR_NONE) {
+      showError("Erro ao definir taxa de codificação LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
     if (lora.setCRC(true) != RADIOLIB_ERR_NONE) { // Habilita verificação de CRC
       showError("Erro ao habilitar CRC LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    if (lora.setCodingRate(5) != RADIOLIB_ERR_NONE) { // Taxa de codificação
-      showError("Erro ao definir taxa de codificação LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
     // Quantidade de redundância para correção de erros. Quanto maior, mais robusto, mas menos eficiente.
     // 5 equivale a 4/5. (Mais confiável = menor velocidade)
-    if (lora.setPreambleLength(8) != RADIOLIB_ERR_NONE) { // Comprimento do preâmbulo (símbolos)
+    if (lora.setPreambleLength(plLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir comprimento do preâmbulo LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
-    if (lora.setSyncWord(0x12) != RADIOLIB_ERR_NONE) { // Palavra de sincronização. 0x34 → LoRaWAN público. | 0x12 → LoRa privado.
+    if (lora.setSyncWord(swLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao definir palavra de sincronização LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
