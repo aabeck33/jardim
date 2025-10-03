@@ -341,6 +341,7 @@ if __name__ == "__main__":
         )
         time.sleep(2)
 
+        write_parameters(ser, cfg.DEFAULT_PARAMS)
         read_parameters(ser)
 
     except KeyboardInterrupt:
