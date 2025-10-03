@@ -86,6 +86,10 @@ void setupLoRa() {
       showError("Erro ao definir largura de banda LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     }
+    if (lora.setCRC(true) != RADIOLIB_ERR_NONE) { // Habilita verificação de CRC
+      showError("Erro ao habilitar CRC LoRa.", 1);
+      sinalizaErro(ERROLORA_PISCA, "rapido");
+    }
     if (lora.setCodingRate(5) != RADIOLIB_ERR_NONE) { // Taxa de codificação
       showError("Erro ao definir taxa de codificação LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");

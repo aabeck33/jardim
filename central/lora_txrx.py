@@ -66,10 +66,10 @@ if __name__ == "__main__":
 
         while True:
             print("Enviando mensagem...")
-            send_message("Hello LoRa E220!")
+            send_message(ser, "Hello LoRa E220!")
             time.sleep(2)
             print("Aguardando resposta...")
-            receive_message()
+            receive_message(ser)
             time.sleep(2)
 
     except KeyboardInterrupt:

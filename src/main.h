@@ -69,7 +69,7 @@ constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação
 // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
 constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
 constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
-constexpr uint32_t BAUD_RATE = 115200;                 // Taxa de transmissão da Serial
+constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
 
 // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
@@ -82,7 +82,7 @@ constexpr int pinosEntrada[] = {2, 3, 4, 5, 6, 7};
 constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 
 // Configuração do LoRa
-constexpr float freqLoRa = 915.0;   // Frequência em MHz - Banda ISM para América do Sul
+constexpr float freqLoRa = 915.125;   // Frequência em MHz - Banda ISM para América do Sul
 constexpr int txPower = 14;         // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm
 
 // Configuração do watchdog
