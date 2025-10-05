@@ -76,45 +76,25 @@ void setupSPIFFS() {
 void setupLoRa() {
   dispmsg("Inicializando LoRa...");
 
-  int status = lora.begin();
+  int status = lora.begin(
+    freqLoRa,    // Frequência em MHz
+    bwLoRa,      // Largura de banda em kHz
+    sfLoRa,      // Fator de espalhamento
+    crLoRa,      // Taxa de codificação
+    swLoRa,      // Palavra de sincronização
+    txPower,     // Potência de transmissão em dBm
+    plLoRa       // Comprimento do preâmbulo em símbolos
+    );
+  delay(100);
 
   if (status == RADIOLIB_ERR_NONE) {
     // Configuração do LoRa
-    if (lora.setFrequency(freqLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir frequência LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setOutputPower(txPower) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir potência de transmissão LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setSpreadingFactor(sfLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir fator de espalhamento LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setBandwidth(bwLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir largura de banda LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setCodingRate(crLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir taxa de codificação LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setCRC(true) != RADIOLIB_ERR_NONE) { // Habilita verificação de CRC
+    if (lora.setCRC(crcLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao habilitar CRC LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
+    } else {
+      dispmsg("LoRa ini sucesso.");
     }
-    // Quantidade de redundância para correção de erros. Quanto maior, mais robusto, mas menos eficiente.
-    // 5 equivale a 4/5. (Mais confiável = menor velocidade)
-    if (lora.setPreambleLength(plLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir comprimento do preâmbulo LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    if (lora.setSyncWord(swLoRa) != RADIOLIB_ERR_NONE) {
-      showError("Erro ao definir palavra de sincronização LoRa.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-    }
-    dispmsg("LoRa ini sucesso.");
   } else {
     showError(String(status), 2);
     while (true) {

@@ -88,11 +88,12 @@ constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 // Ainda precisam estar iguais nos dispositivos que irão se comunicar.
 constexpr float freqLoRa = 915.125;    // Frequência em MHz - Banda ISM para América do Sul - 915 a 928 MHz
 constexpr int txPower = 17;            // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm. As opções comuns são 2 a 17 dBm.
-constexpr int8_t sfLoRa = 11;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
+constexpr int8_t sfLoRa = 10;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
 constexpr float bwLoRa = 125.0;        // Largura de banda (em kHz) - Quanto maior, maior taxa / menor alcance. As opções comuns são 125.0, 250.0, 500.0
 constexpr uint8_t crLoRa = 5;          // Taxa de codificação (5 a 8) - 5 equivale a 4/5. (Mais confiável = menor velocidade)
 constexpr uint16_t plLoRa = 8;         // Comprimento do preâmbulo (símbolos) - Quanto maior, mais confiável / menor velocidade. As opções são 6, 8, 10, 12, 14, 16, 18, 20
 constexpr uint16_t swLoRa = 0x12;      // Palavra de sincronização - 0x34 para LoRaWAN público | 0x12 para LoRa privado
+constexpr uint8_t crcLoRa = 0;         // HDesabilitar verificação de CRC
 
 // Configuração do Deep Sleep
 constexpr uint32_t DEEP_SLEEP_TIMEOUT_MS = 60000; // Timeout do Deep Sleep em milissegundos (1 minuto)
