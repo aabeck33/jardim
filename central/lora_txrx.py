@@ -64,7 +64,10 @@ if __name__ == "__main__":
         )
         time.sleep(2)
 
-        loractrl.set_mode("NORMAL")
+        loractrl.write_parameters(ser, cfg.DEFAULT_PARAMS)
+        time.sleep(0.5)
+        
+        loractrl.read_parameters(ser)
         time.sleep(0.5)
 
         while True:
@@ -72,7 +75,7 @@ if __name__ == "__main__":
             send_message(ser, "Hello LoRa E220!")
             time.sleep(2)
             print("Aguardando resposta...")
-            receive_message(ser, timeout=15)
+            receive_message(ser, timeout=25)
             time.sleep(2)
 
     except KeyboardInterrupt:

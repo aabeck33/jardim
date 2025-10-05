@@ -25,17 +25,19 @@ STORMGLASS_URL = "https://api.stormglass.io/v2/weather/point"
 
 # Configuração da porta serial /dev/serial0 ou /dev/ttyAMA0
 PORT = "/dev/serial0"
-BAUDRATE = 115200  # Velocidade de comunicação
+BAUDRATE = 9600  # Velocidade de comunicação
 
 # Configurações do módulo LoRa E220-900T30D
 LORA_FREQ = 915     # Frequência em MHz
 LORA_ADDRH = 0xFF   # Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
 LORA_ADDRL = 0xFF   # Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
 LORA_CHANNEL = 0x41 # Canal (0x00 a 0x50 - 0-80 = 81 canais)
-LORA_SPEED = 0xE2   # Velocidade (0x00 a 0xFF) - 0x62 = 9600 bps 8N1 2.4K | 0xE2 = 115200 bps 8N1 2.4K
+LORA_SPEED = 0x62   # Velocidade (0x00 a 0xFF) - 0x62 = 9600 bps 8N1 2.4 Kbps
 LORA_WOR = 0x03     # Modo WOR (0x00 a 0xFF) - 0x00 = 500ms, 0x03 = 1500ms, 0x07 = 4000ms
 LORA_POWER = 0x00   # Potência (0x00 a 0x03) - 0x00 = 30dBm, 0x03 = 21dBm
 # Parâmetros padrão do E220-900T30D
 # ADDH, ADDL, SPEED (REG0), OPTION (REG1), CHANNEL (REG2), WOR (REG3), CRYPT_H, CRYPT_L
 # Default: ([0xFF, 0xFF, 0x62, 0x00, 0x12, 0x03, 0x00, 0x00])
 DEFAULT_PARAMS = bytearray([LORA_ADDRH, LORA_ADDRL, LORA_SPEED, LORA_POWER, LORA_CHANNEL, LORA_WOR, 0x00, 0x00])
+
+# config.py

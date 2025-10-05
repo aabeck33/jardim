@@ -69,7 +69,7 @@ constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação
 // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
 constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
 constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
-constexpr uint32_t BAUD_RATE = 115200;                   // Taxa de transmissão da Serial
+constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
 
 // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
