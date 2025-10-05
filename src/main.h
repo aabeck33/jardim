@@ -15,6 +15,7 @@
  *   - SPIFFS for file system support
  */
 #include <Arduino.h>
+#include <SPI.h>
 #include <ArduinoJson.h>
 #include <RadioLib.h>
 #include <WiFi.h>
@@ -26,7 +27,7 @@
 
 
 // === Configurações do programa ===
-#define DEBUG_MODE false        // Modo de depuração
+#define DEBUG_MODE true        // Modo de depuração
 #define USE_DISPLAY true        // Usar display OLED
 #define USE_LORA true           // Usar LoRa para comunicação
 #define USE_BATTERY false       // Usar monitoramento da bateria
@@ -34,6 +35,7 @@
 #define USE_DEEP_SLEEP true    // Usar sono profundo para economia de energia
 #define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
 #define USE_WIFI false          // Usar Wi-Fi para comunicação
+#define USE_BLUETOOTH false     // Usar Bluetooth
 #define USE_SERIAL true         // Usar Serial para depuração
 #define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
@@ -47,6 +49,9 @@ constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoram
 #define LORA_DIO1 14
 #define LORA_RST 12
 #define LORA_BUSY 13
+#define LORA_SCK 9
+#define LORA_MISO 11
+#define LORA_MOSI 10
 constexpr uint8_t LED_PIN = 35;                // Pino do LED embutido (GPIO 35)
 constexpr uint8_t PINO_VEXT = 36;              // Pino para ligar o circuito Vext
 
@@ -88,7 +93,7 @@ constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 // Ainda precisam estar iguais nos dispositivos que irão se comunicar.
 constexpr float freqLoRa = 915.125;    // Frequência em MHz - Banda ISM para América do Sul - 915 a 928 MHz
 constexpr int txPower = 17;            // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm. As opções comuns são 2 a 17 dBm.
-constexpr int8_t sfLoRa = 10;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
+constexpr int8_t sfLoRa = 11;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
 constexpr float bwLoRa = 125.0;        // Largura de banda (em kHz) - Quanto maior, maior taxa / menor alcance. As opções comuns são 125.0, 250.0, 500.0
 constexpr uint8_t crLoRa = 5;          // Taxa de codificação (5 a 8) - 5 equivale a 4/5. (Mais confiável = menor velocidade)
 constexpr uint16_t plLoRa = 8;         // Comprimento do preâmbulo (símbolos) - Quanto maior, mais confiável / menor velocidade. As opções são 6, 8, 10, 12, 14, 16, 18, 20
@@ -140,6 +145,8 @@ void setupSPIFFS();
 void setupLoRa();
 void setupDisplay();
 void iniciarPinos();
+bool setupBluetooth();
+
 
 // utils.h
 void displayOnOff(const String &state = "on");

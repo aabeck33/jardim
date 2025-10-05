@@ -76,18 +76,24 @@ void setupSPIFFS() {
 void setupLoRa() {
   dispmsg("Inicializando LoRa...");
 
-  int status = lora.begin(
+  int state = lora.begin(
     freqLoRa,    // Frequência em MHz
     bwLoRa,      // Largura de banda em kHz
     sfLoRa,      // Fator de espalhamento
     crLoRa,      // Taxa de codificação
     swLoRa,      // Palavra de sincronização
     txPower,     // Potência de transmissão em dBm
-    plLoRa       // Comprimento do preâmbulo em símbolos
+    plLoRa,      // Comprimento do preâmbulo em símbolos
+    0.0,          // Tensão do TCXO (0 se não usar)
+    false        // Usar regulador LDO (true) ou DC-DC (false)
     );
   delay(100);
 
-  if (status == RADIOLIB_ERR_NONE) {
+  #if (DEBUG_MODE)
+    dispmsg("Estado LoRa: " + String(state), 1);
+  #endif
+
+  if (state == RADIOLIB_ERR_NONE) {
     // Configuração do LoRa
     if (lora.setCRC(crcLoRa) != RADIOLIB_ERR_NONE) {
       showError("Erro ao habilitar CRC LoRa.", 1);
@@ -96,7 +102,7 @@ void setupLoRa() {
       dispmsg("LoRa ini sucesso.");
     }
   } else {
-    showError(String(status), 2);
+    showError(String(state), 2);
     while (true) {
       showError("LoRa não iniciado.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
@@ -138,6 +144,11 @@ void setupDisplay() {
 }
 
 void iniciarPinos() {
+  #if (USE_LORA)
+    SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_NSS);
+    Serial.println("SPI iniciado para LoRa.");
+  #endif
+
   // Pinos de entrada
   for (int i = 0; i < numEntradas; i++) {
     pinMode(pinosEntrada[i], INPUT);
@@ -151,6 +162,23 @@ void iniciarPinos() {
   pinMode(OLED_RESET, OUTPUT);                     // Pino de reset do OLED
   analogReadResolution(ANALOG_RESOLUTION);
   Serial.println("Pinos configurados.");
+}
+
+
+/**
+ * @brief Inicializa o Bluetooth.
+ * @return [Boolean] true se o Bluetooth foi iniciado corretamente, false caso contrário.
+ */
+bool setupBluetooth() {
+  // Inicializa Bluetooth
+  if (!btStart()) {
+    dispmsg("Bluetooth iniciado.");
+    return true;
+  } else {
+    showError("Falha ao iniciar Bluetooth.", 1);
+    sinalizaErro(ERROCRIT_PISCA, "rapido");
+    return false;
+  }
 }
 
 
