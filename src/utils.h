@@ -436,5 +436,180 @@ void VextOnOff(const String &state) {
   }
 }
 
+
+/**
+ * @brief Aguarda o pino AUX do módulo LoRa ficar HIGH.
+ */
+void wait_aux_high() {
+  while (digitalRead(LORA_EXT_AUX) == LOW) {
+    delay(10);
+  }
+}
+
+
+/**
+ * @brief Configura o modo do módulo LoRa externo E220.
+ * @param mode [String] Modo desejado ("normal", "config", "wor-tx", "wor-rx").
+ */
+void set_mode(const String &mode) {
+  if (mode == "normal") {
+    #if (DEBUG_MODE)
+      dispmsg("[E220] Entrando em modo NORMAL", 1);
+    #endif
+    digitalWrite(LORA_EXT_M0, LOW);
+    digitalWrite(LORA_EXT_M1, LOW);
+  } else if (mode == "config") {
+    #if (DEBUG_MODE)
+      dispmsg("[E220] Entrando em modo CONFIGURAÇÃO/Sleep", 1);
+    #endif
+    digitalWrite(LORA_EXT_M0, HIGH);
+    digitalWrite(LORA_EXT_M1, HIGH);
+  } else if (mode == "wor-tx") {
+    #if (DEBUG_MODE)
+      dispmsg("[E220] Entrando em modo Wake-on-Radio - Transmissão (WOR-TX)", 1);
+    #endif
+    digitalWrite(LORA_EXT_M0, LOW);
+    digitalWrite(LORA_EXT_M1, HIGH);
+  } else if (mode == "wor-rx") {
+    #if (DEBUG_MODE)
+      dispmsg("[E220] Entrando em modo Wake-on-Radio - Recepção (WOR-RX)", 1);
+    #endif
+    digitalWrite(LORA_EXT_M0, HIGH);
+    digitalWrite(LORA_EXT_M1, LOW);
+  }
+  wait_aux_high();
+}
+
+
+/**
+ * @brief Lê os parâmetros do módulo LoRa externo E220.
+ * @param ser [HardwareSerial&] Instância da Serial usada para comunicação com o módulo.
+ * @return [uint8_t*] Ponteiro para os parâmetros lidos (array de 12 bytes).
+ */
+uint8_t* read_parameters(HardwareSerial &ser) {
+  uint8_t cmd[] = {0xC1, 0x00, 0x09};   // Comando de leitura (9 bytes de dados a partir do endereço 0x00)
+  static uint8_t resp[12];              // Array para armazenar a resposta
+  memset(resp, 0, sizeof(resp));
+  int i = 0;
+
+  set_mode("config");
+  #if (DEBUG_MODE)
+    dispmsg("[E220] Limpando buffers...", 1);
+  #endif
+  while (ser.available()) {
+    ser.read();
+  }
+  wait_aux_high();
+
+  #if (DEBUG_MODE)
+    dispmsg("[E220] Enviando comando de leitura...", 1);
+  #endif
+  ser.write(cmd, 3);
+  delay(100);
+
+  while (ser.available() && i < 12) {
+    resp[i++] = Serial2.read();
+  }
+  #if (DEBUG_MODE)
+    size_t tamanho = i;
+    Serial.print("Resposta bruta: ");
+    for (int i = 0; i < tamanho; i++) {       // 'tamanho' é o número de bytes válidos em resp
+        if (resp[i] < 16) Serial.print("0");  // para sempre ter dois dígitos
+        Serial.print(resp[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+  #endif
+
+  set_mode("normal");
+
+  // A resposta de sucesso para leitura é 12 bytes: 0xC1 0x00 0x09 + 8 bytes de dados + 1 byte extra 0x10
+  
+  if (i == 12 && resp[0] == 0xC1 && resp[1] == 0x00 && resp[2] == 0x09) {
+    // Extrai parâmetros
+    uint8_t* params = &resp[3];
+    uint8_t addh    = params[0];
+    uint8_t addl    = params[1];
+    uint8_t speed   = params[2];
+    uint8_t option  = params[3];
+    uint8_t chan    = params[4];
+    uint8_t crypt_h = params[6];
+    uint8_t crypt_l = params[7];
+
+    // Endereço do dispositivo 2 bytes à partir da posição 0
+    uint16_t address = (addh << 8) | addl;
+    // Baud rate 3 bits (5-7) a partir da posição 2
+    // Air data rate 3 bits (0-2) a partir da posição 2
+    // Paridade 2 bits (3-4) a partir da posição 2
+    // Canal 7 bits a partir da posição 3
+    chan = chan & 0x7F;
+    // Frequência aproximada em MHz = 850.125 + canal
+    float freq = 850.125 + chan;
+    // Potência TX 2 bits (6-7) a partir da posição 4
+
+    // Tabelas de conversão (exemplo, adapte conforme seu código)
+    int baud_rates[8]    = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
+    const char* parities[4] = {"8N1", "8O1", "8E1", "8N1"};
+    float air_rates[8]   = {2.4, 2.4, 2.4, 4.8, 9.6, 19.2, 38.4, 62.5};
+    int tx_powers[4]    = {30, 27, 24, 21};
+
+    int baud_rate   = baud_rates[(speed >> 5) & 0b111];
+    const char* parity = parities[(speed >> 3) & 0b11];
+    float air_data_rate = air_rates[speed & 0b111];
+    int tx_power   = tx_powers[option & 0b11];
+
+    Serial.println("\n--- [E220] Configurações Atuais do Módulo ---");
+    Serial.print(" Endereço: "); Serial.println(address, HEX);
+    Serial.print(" Baud Rate (UART): "); Serial.print(baud_rate); Serial.println(" bps");
+    Serial.print(" Paridade: "); Serial.println(parity);
+    Serial.print(" Air Data Rate: "); Serial.print(air_data_rate); Serial.println(" kbps");
+    Serial.print(" Canal: "); Serial.println(chan);
+    Serial.print(" Frequência: "); Serial.print(freq); Serial.println(" MHz");
+    Serial.print(" Potência TX: "); Serial.print(tx_power); Serial.println(" dBm");
+    Serial.println("-------------------------------------------\n");
+
+    return resp;
+    } else {
+      Serial.println("[E220] Falha ao ler parâmetros");
+      return NULL;
+    }
+}
+
+
+/**
+ * @brief Escreve os parâmetros no módulo LoRa externo E220.
+ * @param params [uint8_t[8]] Array com os 8 bytes de parâmetros a serem escritos.
+ * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
+ */
+bool write_parameters(uint8_t params[8]) {
+  set_mode("config");
+  wait_aux_high();
+
+  uint8_t cmd[11];
+  cmd[0] = 0xC0;
+  cmd[1] = 0x00;
+  cmd[2] = 0x08;
+  for (int i = 0; i < 8; i++) cmd[3 + i] = params[i];
+
+  Serial2.write(cmd, 11);
+  delay(200);
+
+  uint8_t resp[11];
+  int i = 0;
+  while (Serial2.available() && i < 11) {
+    resp[i++] = Serial2.read();
+  }
+
+  set_mode("normal");
+
+  if (i == 11 && resp[0] == 0xC1) {
+    Serial.println("Parâmetros escritos com sucesso!");
+    return true;
+  } else {
+    Serial.println("Falha ao escrever parâmetros!");
+    return false;
+  }
+}
+
 #endif
 // utils.h

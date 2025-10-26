@@ -61,11 +61,11 @@ parity_table_r = {
 parity_table_w = {v: k for k, v in parity_table_r.items()}
 
 
-def set_mode(mode: str):
+def set_mode(mode: str = "normal"):
     """Define o modo do módulo E220 (M0, M1).
 
     Args:
-        mode (str): O modo a ser definido ("normal", "config", "wakeup", "power_saving").
+        mode (str): O modo a ser definido ("normal", "config", "wor-tx", "wor-rx").
     """
     if mode == "normal":
         if cfg.DEBUG_MODE: print("[E220] Entrando em modo NORMAL")
@@ -75,11 +75,11 @@ def set_mode(mode: str):
         if cfg.DEBUG_MODE: print("[E220] Entrando em modo CONFIGURAÇÃO/Sleep")
         GPIO.output(cfg.PIN_M0, 1)
         GPIO.output(cfg.PIN_M1, 1)
-    elif mode == "wakeup":
+    elif mode == "wor-tx":
         if cfg.DEBUG_MODE: print("[E220] Entrando em modo Wake-on-Radio - Transmissão (WOR-TX)")
         GPIO.output(cfg.PIN_M0, 0)
         GPIO.output(cfg.PIN_M1, 1)
-    elif mode == "power_saving":
+    elif mode == "wor-rx":
         if cfg.DEBUG_MODE: print("[E220] Entrando em modo Wake-on-Radio - Recepção (WOR-RX)")
         GPIO.output(cfg.PIN_M0, 1)
         GPIO.output(cfg.PIN_M1, 0)
@@ -94,6 +94,8 @@ def read_parameters(ser: serial.Serial) -> bytes | None:
     Returns:
         Parâmetros lidos (bytes) ou None em caso de falha.
     """
+    cmd = bytes([0xC1, 0x00, 0x09]) # Comando de leitura (9 bytes de dados à partir do endereço 0x00)
+    
     set_mode("config")
 
     if cfg.DEBUG_MODE:
@@ -108,7 +110,6 @@ def read_parameters(ser: serial.Serial) -> bytes | None:
     
     if cfg.DEBUG_MODE:
         print("[E220] Enviando comando de leitura...")
-    cmd = bytes([0xC1, 0x00, 0x09]) # Comando de leitura (9 bytes de dados à partir do endereço 0x00)
     ser.write(cmd)
     time.sleep(0.1)
     resp = ser.read(ser.in_waiting)

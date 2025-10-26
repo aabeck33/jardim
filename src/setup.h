@@ -155,11 +155,15 @@ void iniciarPinos() {
   }
 
   // Pinos individuais:
-  pinMode(VBAT_READ, INPUT);                       // Pino da bateria
-  pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP);   // Pino do botão de sair do modo seguro
-  pinMode(LED_PIN, OUTPUT);                        // Pino do LED integrado
-  pinMode(PINO_VEXT, OUTPUT);                      // Pino Vext
-  pinMode(OLED_RESET, OUTPUT);                     // Pino de reset do OLED
+  pinMode(VBAT_READ, INPUT);                      // Pino da bateria
+  pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP);  // Pino do botão de sair do modo seguro
+  pinMode(LED_PIN, OUTPUT);                       // Pino do LED integrado
+  pinMode(PINO_VEXT, OUTPUT);                     // Pino Vext
+  pinMode(OLED_RESET, OUTPUT);                    // Pino de reset do OLED
+  pinMode(LORA_EXT_M0, OUTPUT);                   // Pino M0 do LoRa externo
+  pinMode(LORA_EXT_M1, OUTPUT);                   // Pino M1 do LoRa externo
+  pinMode(LORA_EXT_AUX, INPUT);                   // Pino AUX do LoRa externo
+
   analogReadResolution(ANALOG_RESOLUTION);
   Serial.println("Pinos configurados.");
 }
@@ -252,5 +256,6 @@ bool setupSerial2() {
     return true;
   }
 }
+
 #endif
 // setup.h
