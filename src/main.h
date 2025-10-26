@@ -30,7 +30,7 @@
 #define DEBUG_MODE true        // Modo de depuração
 #define USE_DISPLAY true        // Usar display OLED
 #define USE_LORA false           // Usar LoRa para comunicação
-#define USE_LORA_EXT true       // Usar módulo LORA externo
+#define USE_LORA_EXT true       // Usar módulo LORA externo - Precisa de USE_SERIAL_2
 #define USE_BATTERY false       // Usar monitoramento da bateria
 #define USE_ENCRYPTION true     // Usar encriptação
 #define USE_DEEP_SLEEP true    // Usar sono profundo para economia de energia
@@ -50,6 +50,9 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define OLED_SDA 17
   #define OLED_SCL 18
   #define OLED_RESET 21                          // 21 ou -1 para Reset por software
+  // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
+  constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
+  constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
 #endif
 #if (USE_LORA)
   #define LORA_NSS 8
@@ -68,6 +71,20 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define LORA_EXT_AUX 38
   #define LORA_EXT_M0 39
   #define LORA_EXT_M1 40
+  // Configurações do módulo LoRa E220-900T30D
+  #define LORA_FREQ 915     // Frequência em MHz
+  #define LORA_ADDRH 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
+  #define LORA_ADDRL 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
+  #define LORA_CHANNEL 0x41 // Canal (0x00 a 0x50 - 0-80 = 81 canais)
+  #define LORA_SPEED 0x62   // Velocidade (0x00 a 0xFF) - 0x62 = 9600 bps 8N1 2.4 Kbps
+  #define LORA_WOR 0x03     // Modo WOR (0x00 a 0xFF) - 0x00 = 500ms, 0x03 = 1500ms, 0x07 = 4000ms
+  #define LORA_POWER 0x00   // Potência (0x00 a 0x03) - 0x00 = 30dBm, 0x03 = 21dBm
+  // Parâmetros padrão do E220-900T30D
+  // ADDH, ADDL, SPEED (REG0), OPTION (REG1), CHANNEL (REG2), WOR (REG3), CRYPT_H, CRYPT_L
+  // Default: ([0xFF, 0xFF, 0x62, 0x00, 0x12, 0x03, 0x00, 0x00])
+  constexpr const uint8_t DEFAULT_PARAMS[8] = {
+    LORA_ADDRH, LORA_ADDRL, LORA_SPEED, LORA_POWER, LORA_CHANNEL, LORA_WOR, 0x00, 0x00
+  };
 #endif
 
 // === Variáveis e Constantes Globais ===
@@ -75,7 +92,7 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
 constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
 constexpr const char* TIPO_DISPOSITIVO = "ESP32V3";
-constexpr const char* VERSAO_FIRMWARE = "0.0.2-alpha"; // Versão do firmware
+constexpr const char* VERSAO_FIRMWARE = "0.0.3-alpha"; // Versão do firmware
 constexpr const char* ssid = "aabeck-ESP32";           // SSID do Wi-Fi
 constexpr const char* password = "EbSePc3k2&";         // Senha do Wi-Fi
 
@@ -83,9 +100,6 @@ constexpr size_t JSON_DOC_SIZE = 512;                  // Tamanho alocado
 constexpr size_t JSON_USAGE_WARNING_PERCENT = 85;      // Percentual de uso que aciona o alerta
 constexpr size_t TEMPO_ENVIO = 11;                     // Tempo de envio em minutos
 constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação XOR simples
-// Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
-constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
-constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
 constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
 
@@ -159,6 +173,7 @@ bool setupSerial2();
 void setupWiFi();
 void setupSPIFFS();
 void setupLoRa();
+bool setupLoRaExt();
 void setupDisplay();
 void iniciarPinos();
 bool setupBluetooth();
@@ -191,7 +206,7 @@ void resetOLED();
 void wait_aux_high();
 void set_mode(const String &mode = "normal");
 uint8_t* read_parameters(HardwareSerial &ser);
-bool write_parameters(uint8_t params[8]);
+bool write_parameters(HardwareSerial &ser, uint8_t params[8] = const_cast<uint8_t*>(DEFAULT_PARAMS));
 
 #endif
 // main.h

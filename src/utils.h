@@ -578,27 +578,42 @@ uint8_t* read_parameters(HardwareSerial &ser) {
 
 /**
  * @brief Escreve os parâmetros no módulo LoRa externo E220.
+ * @param ser [HardwareSerial&] Instância da Serial usada para comunicação com o módulo.
  * @param params [uint8_t[8]] Array com os 8 bytes de parâmetros a serem escritos.
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
-bool write_parameters(uint8_t params[8]) {
+bool write_parameters(HardwareSerial &ser, uint8_t params[8]) {
+  uint8_t cmd[] = {0xC0, 0x00, 0x08};   // Comando de escrita (8 bytes de dados a partir do endereço 0x00)
+  static uint8_t resp[11];              // Array para armazenar a resposta
+  memset(resp, 0, sizeof(resp));
+  int i = 0;
+
   set_mode("config");
   wait_aux_high();
 
-  uint8_t cmd[11];
-  cmd[0] = 0xC0;
-  cmd[1] = 0x00;
-  cmd[2] = 0x08;
   for (int i = 0; i < 8; i++) cmd[3 + i] = params[i];
+  #if (DEBUG_MODE)
+    dispmsg("[E220] Enviando comando de escrita...", 1);
+  #endif
+  ser.write(cmd, 11);
+  wait_aux_high();
 
-  Serial2.write(cmd, 11);
-  delay(200);
-
-  uint8_t resp[11];
-  int i = 0;
-  while (Serial2.available() && i < 11) {
-    resp[i++] = Serial2.read();
+  #if (DEBUG_MODE)
+    dispmsg("[E220] Enviando comando de leitura...", 1);
+  #endif
+  while (ser.available() && i < 11) {
+    resp[i++] = ser.read();
   }
+  #if (DEBUG_MODE)
+    size_t tamanho = i;
+    Serial.print("Resposta bruta: ");
+    for (int i = 0; i < tamanho; i++) {       // 'tamanho' é o número de bytes válidos em resp
+        if (resp[i] < 16) Serial.print("0");  // para sempre ter dois dígitos
+        Serial.print(resp[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+  #endif
 
   set_mode("normal");
 

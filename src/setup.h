@@ -257,5 +257,22 @@ bool setupSerial2() {
   }
 }
 
+/**
+ * @brief Configura o módulo LoRa externo E220.
+ * Escreve os parâmetros definidos no módulo e sinaliza sucesso ou falha.
+ * @return [Boolean] true se a configuração foi bem-sucedida, false caso contrário.
+ */
+bool setupLoRaExt() {
+  dispmsg("Inicializando LoRa Ext...");
+  if (write_parameters(Serial2)) {
+    dispmsg("Parâmetros do E220 escritos com sucesso.");
+  } else {
+    showError("Falha ao escrever parâmetros no E220.", 1);
+    sinalizaErro(ERROCRIT_PISCA, "rapido");
+  }
+  dispmsg("LoRa Ext ini sucesso.");
+  return true;
+}
+
 #endif
 // setup.h

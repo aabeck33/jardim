@@ -29,7 +29,9 @@
  *
  * @note The SX1262 object is created using the specified pin assignments.
  */
-SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+#if USE_LORA
+  SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+#endif
 
 // Instância do display OLED SSD1306
 /**
@@ -42,8 +44,9 @@ SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
  * @param &Wire Reference to the I2C communication object.
  * @param OLED_RESET The pin used to reset the display (can be set to -1 if not used).
  */
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
+#if USE_DISPLAY
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#endif
 
 /**
  * @brief Função de inicialização do sistema.
@@ -77,13 +80,11 @@ void setup() {
   #endif
 
   #if USE_SERIAL_2
-    // Inicia a Serial2 para comunicação adicional
-    if (setupSerial2()) {
-      Serial.println("Serial 2 iniciada com sucesso.");
-    } else {
-      showError("Falha ao iniciar Serial 2.", 1);
-      sinalizaErro(ERROCRIT_PISCA, "rapido");
-    }
+    setupSerial2();
+  #endif
+
+  #if USE_LORA_EXT
+    setupLoRaExt();
   #endif
 
   // Configura modo seguro
@@ -173,14 +174,18 @@ void loop() {
       }
     }
   #endif
-/*
+
   String payload = coletarDados(); // Coleta os dados e cria o JSON para envio
 
   #if (USE_ENCRYPTION)
     String encryptedPayload = xorEncrypt(payload, XOR_KEY);   // Encripta os dados para envio
-    enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+    #if USE_LORA
+      enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+    #endif
   #else
-    enviarDados(payload);
+    #if USE_LORA
+      enviarDados(payload);
+    #endif
   #endif
 
   // Exibe informações de depuração sobre o uso de memória
@@ -207,13 +212,14 @@ void loop() {
     #endif
     aguardar(TEMPO_ENVIO);
   #endif
-*/
+/*
 int state = lora.transmit("PING123\n");
   if (state == RADIOLIB_ERR_NONE) {
     dispmsg("Transmissão LoRa OK.");
   } else {
     dispmsg("Erro na transmissão LoRa: " + String(state));
   }
+  */
 }
 
 // main.cpp
