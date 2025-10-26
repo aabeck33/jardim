@@ -76,6 +76,16 @@ void setup() {
 
   #endif
 
+  #if USE_SERIAL_2
+    // Inicia a Serial2 para comunicação adicional
+    if (setupSerial2()) {
+      Serial.println("Serial 2 iniciada com sucesso.");
+    } else {
+      showError("Falha ao iniciar Serial 2.", 1);
+      sinalizaErro(ERROCRIT_PISCA, "rapido");
+    }
+  #endif
+
   // Configura modo seguro
   if (modoSeguro) {
     dispmsg("Iniciando em MODO SEGURO - SetUp simplificado.");
@@ -86,6 +96,14 @@ void setup() {
 
   #if (USE_WIFI)
     setupWiFi();
+  #else
+    WiFi.mode(WIFI_OFF);
+  #endif
+
+  #if (USE_BLUETOOTH)
+    setupBluetooth();
+  #else
+    btStop();
   #endif
 
   // Inicializa o SPIFFS para armazenamento de arquivos
@@ -155,7 +173,7 @@ void loop() {
       }
     }
   #endif
-
+/*
   String payload = coletarDados(); // Coleta os dados e cria o JSON para envio
 
   #if (USE_ENCRYPTION)
@@ -189,6 +207,13 @@ void loop() {
     #endif
     aguardar(TEMPO_ENVIO);
   #endif
+*/
+int state = lora.transmit("PING123\n");
+  if (state == RADIOLIB_ERR_NONE) {
+    dispmsg("Transmissão LoRa OK.");
+  } else {
+    dispmsg("Erro na transmissão LoRa: " + String(state));
+  }
 }
 
 // main.cpp

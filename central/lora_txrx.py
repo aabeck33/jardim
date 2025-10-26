@@ -71,12 +71,18 @@ if __name__ == "__main__":
         time.sleep(0.5)
 
         while True:
+            if ser.in_waiting:
+                data = ser.read(ser.in_waiting)
+                print("Recebido:", data, data.hex())
+            time.sleep(0.1)
+
+        """while True:
             print("Enviando mensagem...")
             send_message(ser, "Hello LoRa E220!")
             time.sleep(2)
             print("Aguardando resposta...")
             receive_message(ser, timeout=25)
-            time.sleep(2)
+            time.sleep(2)"""
 
     except KeyboardInterrupt:
         print("Encerrando comunicação.")

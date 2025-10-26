@@ -84,7 +84,7 @@ void setupLoRa() {
     swLoRa,      // Palavra de sincronização
     txPower,     // Potência de transmissão em dBm
     plLoRa,      // Comprimento do preâmbulo em símbolos
-    0.0,          // Tensão do TCXO (0 se não usar)
+    1.6,         // float tcxoVoltage = (1.6F) - Tensão TCXO (0 para cristal)
     false        // Usar regulador LDO (true) ou DC-DC (false)
     );
   delay(100);
@@ -229,5 +229,28 @@ bool setupSerial() {
   }
 }
 
+/**
+ * @brief Configura a Serial 2 com timeout.
+ * @return [Boolean] true se a Serial 2 foi iniciada corretamente, false caso contrário.
+ */
+bool setupSerial2() {
+  unsigned long startMillis = millis();
+
+  Serial2.begin(BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN);
+
+  while (!Serial2 && millis() - startMillis < SERIAL_TIMEOUT_MS) {
+    delay(100);
+  }
+
+  if (!Serial2) {
+    showError("Serial não iniciada.", 1);
+    sinalizaErro(ERROSERIAL_PISCA, "rapido");
+    delay(2000);
+    return false;
+  } else {
+    dispmsg("Serial 2 iniciada com sucesso.");
+    return true;
+  }
+}
 #endif
 // setup.h

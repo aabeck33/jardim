@@ -29,7 +29,8 @@
 // === Configurações do programa ===
 #define DEBUG_MODE true        // Modo de depuração
 #define USE_DISPLAY true        // Usar display OLED
-#define USE_LORA true           // Usar LoRa para comunicação
+#define USE_LORA false           // Usar LoRa para comunicação
+#define USE_LORA_EXT true       // Usar módulo LORA externo
 #define USE_BATTERY false       // Usar monitoramento da bateria
 #define USE_ENCRYPTION true     // Usar encriptação
 #define USE_DEEP_SLEEP true    // Usar sono profundo para economia de energia
@@ -37,26 +38,37 @@
 #define USE_WIFI false          // Usar Wi-Fi para comunicação
 #define USE_BLUETOOTH false     // Usar Bluetooth
 #define USE_SERIAL true         // Usar Serial para depuração
+#define USE_SERIAL_2 true       // Usar Serial2 para comunicação com outros dispositivos (LORA, sensores, etc.)
 #define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
 // Dispositivos internos
-#define OLED_SDA 17
-#define OLED_SCL 18
-#define OLED_RESET 21                          // 21 ou -1 para Reset por software
-constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
 constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoramento da bateria
-#define LORA_NSS 8
-#define LORA_DIO1 14
-#define LORA_RST 12
-#define LORA_BUSY 13
-#define LORA_SCK 9
-#define LORA_MISO 11
-#define LORA_MOSI 10
 constexpr uint8_t LED_PIN = 35;                // Pino do LED embutido (GPIO 35)
 constexpr uint8_t PINO_VEXT = 36;              // Pino para ligar o circuito Vext
-
-// GPIO
-constexpr uint8_t PINO_BOTAO_SAIR_SEGURO = 33;
+constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
+#if USE_DISPLAY
+  #define OLED_SDA 17
+  #define OLED_SCL 18
+  #define OLED_RESET 21                          // 21 ou -1 para Reset por software
+#endif
+#if (USE_LORA)
+  #define LORA_NSS 8
+  #define LORA_DIO1 14
+  #define LORA_RST 12
+  #define LORA_BUSY 13
+  #define LORA_SCK 9
+  #define LORA_MISO 11
+  #define LORA_MOSI 10
+#endif
+#if USE_SERIAL_2
+  #define SERIAL2_RX_PIN 41                     // Pino RX da Serial2
+  #define SERIAL2_TX_PIN 42                     // Pino TX da Serial2
+#endif
+#if USE_LORA_EXT
+  #define LORA_EXT_AUX 38
+  #define LORA_EXT_M0 39
+  #define LORA_EXT_M1 40
+#endif
 
 // === Variáveis e Constantes Globais ===
 // Identificação:
@@ -69,7 +81,7 @@ constexpr const char* password = "EbSePc3k2&";         // Senha do Wi-Fi
 
 constexpr size_t JSON_DOC_SIZE = 512;                  // Tamanho alocado
 constexpr size_t JSON_USAGE_WARNING_PERCENT = 85;      // Percentual de uso que aciona o alerta
-constexpr size_t TEMPO_ENVIO = 10;                     // Tempo de envio em minutos
+constexpr size_t TEMPO_ENVIO = 11;                     // Tempo de envio em minutos
 constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação XOR simples
 // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
 constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
@@ -77,12 +89,15 @@ constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
 constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
 constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
 
+
+// GPIO
+constexpr uint8_t PINO_BOTAO_SAIR_SEGURO = 33;
 // Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
 // Portanto, se sua tensão de referência for 3.3V, o valor 4095 representa 3.3V, e 0 representa 0V.
 // Cada unidade no valor representa cerca de 0.0008V (3.3V ÷ 4096).
 constexpr uint8_t ANALOG_RESOLUTION = 12;
 // Pinos ADC: GPIO 2, 3, 4, 5, 6, 7, 19, 20
-// Pinos somente digitais: GPIO 33,  34, 38, 39, 40, 42, 42, 45, 46, 47?, 48?
+// Pinos somente digitais: GPIO 26, 33, 34, 38, 39, 40, 41, 42, 45, 46, 47, 48
 constexpr int pinosEntrada[] = {2, 3, 4, 5, 6, 7};
 constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 
@@ -140,6 +155,7 @@ extern Adafruit_SSD1306 display;
 // === FUNÇÕES ===
 // setup.h
 bool setupSerial();
+bool setupSerial2();
 void setupWiFi();
 void setupSPIFFS();
 void setupLoRa();
