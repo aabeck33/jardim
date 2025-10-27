@@ -24,6 +24,7 @@
 #include <Wire.h>
 #include <esp_task_wdt.h>
 #include <SPIFFS.h>
+#include <LoRa_E220.h>
 
 
 // === Configurações do programa ===
