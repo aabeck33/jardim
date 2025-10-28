@@ -264,6 +264,11 @@ bool setupSerial2() {
  */
 bool setupLoRaExt() {
   dispmsg("Inicializando LoRa Ext...");
+  
+  LoRaExt.begin();
+  ResponseStatus rs = LoRaExt.sendMessage("Hello E220!");
+  Serial.println(rs.getResponseDescription());
+
   if (write_parameters(Serial2)) {
     dispmsg("Parâmetros do E220 escritos com sucesso.");
   } else {

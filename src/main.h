@@ -165,6 +165,7 @@ bool serialOk = false;                   // Indica se a Serial foi iniciada corr
 // === OBJETOS GLOBAIS ===
 extern SX1262 lora;
 extern Adafruit_SSD1306 display;
+extern LoRa_E220 LoRaExt;
 
 
 // === FUNÇÕES ===

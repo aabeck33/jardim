@@ -17,6 +17,49 @@
 #include "setup.h"
 #include "utils.h"
 
+
+#if (USE_LORA)
+  /**
+   * @brief Initializes an SX1262 LoRa module with specified pin configuration.
+   *
+   * @param NSS   Chip select (NSS) pin number.
+   * @param DIO1  DIO1 pin number for interrupt handling.
+   * @param RESET Reset pin number for hardware reset.
+   * @param BUSY  Busy pin number to monitor module status.
+   *
+   * @note The SX1262 object is created using the specified pin assignments.
+   */
+  SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+#endif
+
+#if (USE_LORA_EXT)
+  /**
+   * @brief Initializes an E220 LoRa module with specified pin configuration.
+   *
+   * @param LORA_EXT_M0   M0 pin number for mode selection.
+   * @param LORA_EXT_M1   M1 pin number for mode selection.
+   * @param LORA_EXT_AUX  AUX pin number for module status monitoring.
+   *
+   * @note The E220 object is created using the specified pin assignments.
+   */
+  LoRa_E220 LoRaExt(&Serial2, LORA_EXT_M0, LORA_EXT_M1, LORA_EXT_AUX);
+#endif
+
+#if (USE_DISPLAY)
+  /**
+   * @brief Creates an instance of the Adafruit_SSD1306 display object.
+   *
+   * This object is used to interface with an SSD1306 OLED display using the I2C protocol.
+   *
+   * @param SCREEN_WIDTH The width of the display in pixels.
+   * @param SCREEN_HEIGHT The height of the display in pixels.
+   * @param &Wire Reference to the I2C communication object.
+   * @param OLED_RESET The pin used to reset the display (can be set to -1 if not used).
+   */
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#endif
+
+
 /**
  * @brief Função de inicialização do sistema.
  * Configura watchdog, inicializa periféricos, sensores, display, LoRa, SPIFFS e Wi-Fi conforme configurações.
@@ -30,51 +73,23 @@ void setup() {
   #if (USE_SERIAL)
     // Inicia a Serial, todos os pinos e o display se necessário.
     serialOk = setupSerial();
-
     Serial.println("Inicializando " + String(NOME_PROJETO) + " - " + String(VERSAO_FIRMWARE));
     Serial.println("Dispositivo: " + String(DISPOSITIVO));
     Serial.println("Tipo: " + String(TIPO_DISPOSITIVO));
   #else
     serialOk = false;
-
     // Inicializa pinos
     iniciarPinos();
-
-    #if (USE_DISPLAY)
-      /**
-       * @brief Creates an instance of the Adafruit_SSD1306 display object.
-       *
-       * This object is used to interface with an SSD1306 OLED display using the I2C protocol.
-       *
-       * @param SCREEN_WIDTH The width of the display in pixels.
-       * @param SCREEN_HEIGHT The height of the display in pixels.
-       * @param &Wire Reference to the I2C communication object.
-       * @param OLED_RESET The pin used to reset the display (can be set to -1 if not used).
-       */
-      Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-      setupDisplay();
-    #else
-      dispmsg("Display OLED desativado.");
-    #endif
-
   #endif
 
-  #if USE_SERIAL_2
+  #if (USE_SERIAL_2)
     setupSerial2();
   #endif
 
-  #if USE_LORA_EXT
-    /**
-     * @brief Initializes an E220 LoRa module with specified pin configuration.
-     *
-     * @param LORA_EXT_M0   M0 pin number for mode selection.
-     * @param LORA_EXT_M1   M1 pin number for mode selection.
-     * @param LORA_EXT_AUX  AUX pin number for module status monitoring.
-     *
-     * @note The E220 object is created using the specified pin assignments.
-     */
-    LoRa_E220 loraExt(&Serial2, LORA_EXT_M0, LORA_EXT_M1, LORA_EXT_AUX);
-    setupLoRaExt();
+  #if (USE_DISPLAY)
+    setupDisplay();
+  #else
+    dispmsg("Display OLED desativado.");
   #endif
 
   // Configura modo seguro
@@ -103,20 +118,15 @@ void setup() {
   #endif
 
   #if (USE_LORA)
-    /**
-     * @brief Initializes an SX1262 LoRa module with specified pin configuration.
-     *
-     * @param NSS   Chip select (NSS) pin number.
-     * @param DIO1  DIO1 pin number for interrupt handling.
-     * @param RESET Reset pin number for hardware reset.
-     * @param BUSY  Busy pin number to monitor module status.
-     *
-     * @note The SX1262 object is created using the specified pin assignments.
-     */
-    SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
     setupLoRa();
   #else
     dispmsg("LoRa desativado.");
+  #endif
+
+  #if (USE_LORA_EXT)
+    setupLoRaExt();
+  #else
+    dispmsg("LoRaExt desativado.");
   #endif
 
   digitalWrite(LED_PIN, LOW);     // Desliga o LED integrado
