@@ -269,7 +269,7 @@ bool setupLoRaExt() {
   ResponseStatus rs = LoRaExt.sendMessage("Hello E220!");
   Serial.println(rs.getResponseDescription());
 
-  if (write_parameters(Serial2)) {
+  if (write_parameters(configLoRaExt)) {
     dispmsg("Parâmetros do E220 escritos com sucesso.");
   } else {
     showError("Falha ao escrever parâmetros no E220.", 1);

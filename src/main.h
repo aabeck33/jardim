@@ -207,8 +207,8 @@ void VextOnOff(const String &state = "On");
 void resetOLED();
 void wait_aux_high();
 void set_mode(const String &mode = "normal");
-uint8_t* read_parameters(HardwareSerial &ser);
-bool write_parameters(HardwareSerial &ser, uint8_t params[8] = const_cast<uint8_t*>(DEFAULT_PARAMS));
+boolean read_parameters();
+bool write_parameters(Configuration config);
 
 #endif
 // main.h

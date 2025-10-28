@@ -483,10 +483,96 @@ void set_mode(const String &mode) {
 
 /**
  * @brief Lê os parâmetros do módulo LoRa externo E220.
+ *
+ * @return [boolean] true se a leitura foi bem-sucedida, false caso contrário.
+ */
+boolean read_parameters() {
+  int baud_rates[8] = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
+  const char* parities[4] = {"8N1", "8O1", "8E1", "8N1"};
+  float air_rates[8] = {2.4, 2.4, 2.4, 4.8, 9.6, 19.2, 38.4, 62.5};
+  int tx_powers[4] = {30, 27, 24, 21};
+
+  ResponseStructContainer rsc = LoRaExt.getConfiguration();
+
+  if (rsc.status.code == E220_SUCCESS) {
+    Configuration configuration = *(Configuration*)rsc.data;
+
+    uint16_t address = (configuration.ADDH << 8) | configuration.ADDL;
+    uint8_t speed = configuration.SPED.airDataRate;
+    uint8_t parity = configuration.SPED.uartParity;
+    uint8_t baud = configuration.SPED.uartBaudRate;
+    uint8_t chan = configuration.CHAN;
+    uint8_t power = configuration.OPTION.transmissionPower;
+
+    Serial.println("\n--- [E220] Configurações Atuais do Módulo ---");
+    Serial.print(" Endereço: "); Serial.println(address, HEX);
+    Serial.print(" Baud Rate (UART): "); Serial.print(baud_rates[baud]); Serial.println(" bps");
+    Serial.print(" Paridade: "); Serial.println(parities[parity]);
+    Serial.print(" Air Data Rate: "); Serial.print(air_rates[speed]); Serial.println(" kbps");
+    Serial.print(" Canal: "); Serial.println(chan);
+    Serial.print(" Frequência: "); Serial.print(850.125 + chan); Serial.println(" MHz");
+    Serial.print(" Potência TX: "); Serial.print(tx_powers[power]); Serial.println(" dBm");
+    Serial.println("-------------------------------------------\n");
+
+    rsc.close(); // Libera memória alocada
+    return true;
+  } else {
+    Serial.println("[E220] Falha ao ler parâmetros");
+    return false;
+  }
+}
+
+
+/**
+ * @brief Escreve os parâmetros no módulo LoRa externo E220.
+ * 
+ * @param config [Configuration] Estrutura com os parâmetros a serem escritos.
+ *    WRITE_CFG_PWR_DWN_SAVE: salva na EEPROM (mantém após desligar).
+ *    WRITE_CFG_PWR_DWN_LOSE: salva apenas na RAM (perde após reiniciar).
+ *    WRITE_CFG_TEMP: temporário, usado para testes.
+ * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
+ */
+bool write_parameters(Configuration config) {
+  if (config.CHAN == 0) {
+    config.ADDH = LORA_ADDRH;
+    config.ADDL = LORA_ADDRL;
+
+    config.SPED.uartBaudRate = UART_BPS_9600;
+    config.SPED.uartParity = MODE_00_8N1;
+    config.SPED.airDataRate = AIR_DATA_RATE_010_24;
+
+    config.CHAN = LORA_CHANNEL;
+
+    config.OPTION.transmissionPower = POWER_22;
+
+    config.OPTION.subPacketSetting = SPS_200_00;
+    config.OPTION.RSSIAmbientNoise = RSSI_DISABLED;
+
+    config.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
+    config.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
+    config.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
+    config.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
+  }
+
+  ResponseStatus rs = LoRaExt.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+
+  if (rs.code == E220_SUCCESS) {
+    Serial.println("[E220] Parâmetros escritos com sucesso!");
+    return true;
+  } else {
+    Serial.print("[E220] Falha ao escrever parâmetros: ");
+    Serial.println(rs.getResponseDescription());
+    return false;
+  }
+}
+
+
+/**
+ * @brief Lê os parâmetros do módulo LoRa externo E220.
  * @param ser [HardwareSerial&] Instância da Serial usada para comunicação com o módulo.
  * @return [uint8_t*] Ponteiro para os parâmetros lidos (array de 12 bytes).
  */
-uint8_t* read_parameters(HardwareSerial &ser) {
+uint8_t* read_parametersBin(HardwareSerial &ser) {
   uint8_t cmd[] = {0xC1, 0x00, 0x09};   // Comando de leitura (9 bytes de dados a partir do endereço 0x00)
   static uint8_t resp[12];              // Array para armazenar a resposta
   memset(resp, 0, sizeof(resp));
@@ -582,7 +668,7 @@ uint8_t* read_parameters(HardwareSerial &ser) {
  * @param params [uint8_t[8]] Array com os 8 bytes de parâmetros a serem escritos.
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
-bool write_parameters(HardwareSerial &ser, uint8_t params[8]) {
+bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]) {
   uint8_t cmd[] = {0xC0, 0x00, 0x08};   // Comando de escrita (8 bytes de dados a partir do endereço 0x00)
   static uint8_t resp[11];              // Array para armazenar a resposta
   memset(resp, 0, sizeof(resp));
