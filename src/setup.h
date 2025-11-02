@@ -265,18 +265,26 @@ bool setupSerial2() {
 bool setupLoRaExt() {
   dispmsg("Inicializando LoRa Ext...");
   
+  // Inicia a comunicação com o módulo
   LoRaExt.begin();
-  ResponseStatus rs = LoRaExt.sendMessage("Hello E220!");
-  Serial.println(rs.getResponseDescription());
-
-  if (write_parameters(configLoRaExt)) {
-    dispmsg("Parâmetros do E220 escritos com sucesso.");
+  
+  // Verifica se o módulo responde tentando ler sua configuração
+  ResponseStructContainer rsc = LoRaExt.getConfiguration();
+  
+  if (rsc.status.code == E220_SUCCESS) {
+    Configuration *config = (Configuration*)rsc.data;
+    
+    // Se chegou aqui, conseguiu ler a configuração, então o módulo está respondendo
+    dispmsg("LoRa Ext ini sucesso.");
+    
+    // Libera a memória alocada
+    rsc.close();
+    return true;
   } else {
-    showError("Falha ao escrever parâmetros no E220.", 1);
-    sinalizaErro(ERROCRIT_PISCA, "rapido");
+    showError("Falha ao iniciar LoRa Ext.", 2);
+    sinalizaErro(ERROLORA_PISCA, "rapido");
+    return false;
   }
-  dispmsg("LoRa Ext ini sucesso.");
-  return true;
 }
 
 #endif

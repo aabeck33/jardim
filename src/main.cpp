@@ -12,6 +12,12 @@
  * This code is designed to be compiled with PlatformIO using the C++11 standard.
  * PlatformIO configuration is set in platformio.ini file.
  * Teste - Simulação de JSON: https://arduinojson.org/v6/assistant/
+ * Teste - Simulação de LoRa SX1262: https://radiolib.github.io/radiolib-docs/html/class_s_x1262.html
+ * Teste - Simulação de LoRa E220: https://ebyte.readthedocs.io/en/latest/E220/E220.html
+ * Teste - Simulação de display OLED SSD1306: https://github.com/adafruit/Adafruit_SSD1306
+ * Information: https://randomnerdtutorials.com/
+ * https://mischianti.org/ebyte-lora-e220-device-for-arduino-esp32-or-esp8266-manage-wake-on-radio-and-sends-structured-data-5/#google_vignette
+ * https://github.com/xreef/EByte_LoRa_E220_Series_Library
  */
 #include "main.h"
 #include "setup.h"

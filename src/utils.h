@@ -495,14 +495,23 @@ boolean read_parameters() {
   ResponseStructContainer rsc = LoRaExt.getConfiguration();
 
   if (rsc.status.code == E220_SUCCESS) {
-    Configuration configuration = *(Configuration*)rsc.data;
+    Configuration config_E220 = *(Configuration*)rsc.data;
 
-    uint16_t address = (configuration.ADDH << 8) | configuration.ADDL;
-    uint8_t speed = configuration.SPED.airDataRate;
-    uint8_t parity = configuration.SPED.uartParity;
-    uint8_t baud = configuration.SPED.uartBaudRate;
-    uint8_t chan = configuration.CHAN;
-    uint8_t power = configuration.OPTION.transmissionPower;
+    uint16_t address = (config_E220.ADDH << 8) | config_E220.ADDL;
+    uint8_t chan = config_E220.CHAN;
+
+    uint8_t speed = config_E220.SPED.airDataRate;
+    uint8_t parity = config_E220.SPED.uartParity;
+    uint8_t baud = config_E220.SPED.uartBaudRate;
+
+    uint8_t power = config_E220.OPTION.transmissionPower;
+    uint8_t subPacketSetting = config_E220.OPTION.subPacketSetting;
+    uint8_t RSSIAmbientNoise = config_E220.OPTION.RSSIAmbientNoise;
+
+    uint8_t fixedTransmission = config_E220.TRANSMISSION_MODE.fixedTransmission;
+    uint8_t enableRSSI = config_E220.TRANSMISSION_MODE.enableRSSI;
+    uint8_t enableLBT = config_E220.TRANSMISSION_MODE.enableLBT;
+    uint8_t WORPeriod = config_E220.TRANSMISSION_MODE.WORPeriod;
 
     Serial.println("\n--- [E220] Configurações Atuais do Módulo ---");
     Serial.print(" Endereço: "); Serial.println(address, HEX);
@@ -513,7 +522,19 @@ boolean read_parameters() {
     Serial.print(" Frequência: "); Serial.print(850.125 + chan); Serial.println(" MHz");
     Serial.print(" Potência TX: "); Serial.print(tx_powers[power]); Serial.println(" dBm");
     Serial.println("-------------------------------------------\n");
-
+    Serial.print(" SubPacket Setting: "); Serial.println(subPacketSetting);
+    Serial.print(" RSSI Ambient Noise: "); Serial.println(RSSIAmbientNoise);
+    Serial.print(" Fixed Transmission: "); Serial.println(fixedTransmission);
+    Serial.print(" Enable RSSI: "); Serial.println(enableRSSI);
+    Serial.print(" Enable LBT: "); Serial.println(enableLBT);
+    Serial.print(" WOR Period: "); Serial.println(WORPeriod);
+    Serial.println("-------------------------------------------\n");
+    Serial.println(config_E220.getChannelDescription());
+    Serial.println("-------------------------------------------\n");
+    Serial.println(rsc.status.getResponseDescription());
+    Serial.println("-------------------------------------------\n");
+    Serial.println(rsc.status.code);
+    Serial.println("-------------------------------------------\n");
     rsc.close(); // Libera memória alocada
     return true;
   } else {
@@ -533,7 +554,7 @@ boolean read_parameters() {
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
 bool write_parameters(Configuration config) {
-  if (config.CHAN == 0) {
+  if (config.SPED.uartBaudRate >= 0 && config.SPED.uartBaudRate <= 7) {
     config.ADDH = LORA_ADDRH;
     config.ADDL = LORA_ADDRL;
 
@@ -543,10 +564,9 @@ bool write_parameters(Configuration config) {
 
     config.CHAN = LORA_CHANNEL;
 
-    config.OPTION.transmissionPower = POWER_22;
-
     config.OPTION.subPacketSetting = SPS_200_00;
-    config.OPTION.RSSIAmbientNoise = RSSI_DISABLED;
+    config.OPTION.RSSIAmbientNoise = RSSI_AMBIENT_NOISE_DISABLED;
+    config.OPTION.transmissionPower = POWER_30;
 
     config.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
     config.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
@@ -554,14 +574,14 @@ bool write_parameters(Configuration config) {
     config.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
   }
 
-  ResponseStatus rs = LoRaExt.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+  ResponseStatus rsc = LoRaExt.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
 
-  if (rs.code == E220_SUCCESS) {
+  if (rsc.code == E220_SUCCESS) {
     Serial.println("[E220] Parâmetros escritos com sucesso!");
     return true;
   } else {
     Serial.print("[E220] Falha ao escrever parâmetros: ");
-    Serial.println(rs.getResponseDescription());
+    Serial.println(rsc.getResponseDescription());
     return false;
   }
 }
@@ -577,13 +597,25 @@ uint8_t* read_parametersBin(HardwareSerial &ser) {
   static uint8_t resp[12];              // Array para armazenar a resposta
   memset(resp, 0, sizeof(resp));
   int i = 0;
+  const unsigned long start = millis();
+  const unsigned long timeoutMs = 500; // ajuste conforme necessário
+  // Tabelas de conversão
+  int baud_rates[8]    = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
+  const char* parities[4] = {"8N1", "8O1", "8E1", "8N1"};
+  float air_rates[8]   = {2.4, 2.4, 2.4, 4.8, 9.6, 19.2, 38.4, 62.5};
+  int tx_powers[4]    = {30, 27, 24, 21};
 
   set_mode("config");
   #if (DEBUG_MODE)
     dispmsg("[E220] Limpando buffers...", 1);
   #endif
-  while (ser.available()) {
-    ser.read();
+
+  while ((millis() - start) < timeoutMs && i < 12) {
+    if (ser.available()) {
+      resp[i++] = ser.read();
+    } else {
+      delay(2);
+    }
   }
   wait_aux_high();
 
@@ -594,7 +626,7 @@ uint8_t* read_parametersBin(HardwareSerial &ser) {
   delay(100);
 
   while (ser.available() && i < 12) {
-    resp[i++] = Serial2.read();
+    resp[i++] = ser.read();
   }
   #if (DEBUG_MODE)
     size_t tamanho = i;
@@ -633,12 +665,6 @@ uint8_t* read_parametersBin(HardwareSerial &ser) {
     float freq = 850.125 + chan;
     // Potência TX 2 bits (6-7) a partir da posição 4
 
-    // Tabelas de conversão (exemplo, adapte conforme seu código)
-    int baud_rates[8]    = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
-    const char* parities[4] = {"8N1", "8O1", "8E1", "8N1"};
-    float air_rates[8]   = {2.4, 2.4, 2.4, 4.8, 9.6, 19.2, 38.4, 62.5};
-    int tx_powers[4]    = {30, 27, 24, 21};
-
     int baud_rate   = baud_rates[(speed >> 5) & 0b111];
     const char* parity = parities[(speed >> 3) & 0b11];
     float air_data_rate = air_rates[speed & 0b111];
@@ -673,23 +699,30 @@ bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]) {
   static uint8_t resp[11];              // Array para armazenar a resposta
   memset(resp, 0, sizeof(resp));
   int i = 0;
+  const unsigned long start = millis();
+  const unsigned long timeoutMs = 500; // ajuste conforme necessário
 
   set_mode("config");
   wait_aux_high();
 
-  for (int i = 0; i < 8; i++) cmd[3 + i] = params[i];
+  for (int k = 0; k < 8; k++) cmd[3 + k] = params[k];
   #if (DEBUG_MODE)
     dispmsg("[E220] Enviando comando de escrita...", 1);
   #endif
-  ser.write(cmd, 11);
+  ser.write(cmd, sizeof(cmd));
   wait_aux_high();
 
   #if (DEBUG_MODE)
     dispmsg("[E220] Enviando comando de leitura...", 1);
   #endif
-  while (ser.available() && i < 11) {
-    resp[i++] = ser.read();
+  while ((millis() - start) < timeoutMs && i < (int)sizeof(resp)) {
+    if (ser.available()) {
+      resp[i++] = ser.read();
+    } else {
+      delay(2);
+    }
   }
+
   #if (DEBUG_MODE)
     size_t tamanho = i;
     Serial.print("Resposta bruta: ");
@@ -710,6 +743,36 @@ bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]) {
     Serial.println("Falha ao escrever parâmetros!");
     return false;
   }
+}
+
+/**
+ * @brief Verifica se uma String contém um número válido.
+ * @param str [String] String a ser verificada.
+ * @return [bool] true se a string contiver um número válido (inteiro ou decimal),
+ *                incluindo números negativos, false caso contrário.
+ */
+bool isNumber(const String &str) {
+    if (str.length() == 0) return false;
+    
+    // Permite um sinal no início
+    size_t start = (str[0] == '-' || str[0] == '+') ? 1 : 0;
+    
+    bool hasDecimal = false;
+    bool hasDigit = false;  // Para garantir que há pelo menos um dígito
+    
+    for (size_t i = start; i < str.length(); i++) {
+        if (str[i] == '.' || str[i] == ',') {
+            // Permite apenas um ponto decimal
+            if (hasDecimal) return false;
+            hasDecimal = true;
+        } else if (isdigit(str[i])) {
+            hasDigit = true;
+        } else {
+            return false;  // Caractere inválido encontrado
+        }
+    }
+    
+    return hasDigit;  // Deve ter pelo menos um dígito
 }
 
 #endif

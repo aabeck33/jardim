@@ -69,23 +69,13 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define SERIAL2_TX_PIN 42                     // Pino TX da Serial2
 #endif
 #if USE_LORA_EXT
-  #define LORA_EXT_AUX 38
-  #define LORA_EXT_M0 39
-  #define LORA_EXT_M1 40
-  // Configurações do módulo LoRa E220-900T30D
-  #define LORA_FREQ 915     // Frequência em MHz
   #define LORA_ADDRH 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
   #define LORA_ADDRL 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
   #define LORA_CHANNEL 0x41 // Canal (0x00 a 0x50 - 0-80 = 81 canais)
-  #define LORA_SPEED 0x62   // Velocidade (0x00 a 0xFF) - 0x62 = 9600 bps 8N1 2.4 Kbps
-  #define LORA_WOR 0x03     // Modo WOR (0x00 a 0xFF) - 0x00 = 500ms, 0x03 = 1500ms, 0x07 = 4000ms
-  #define LORA_POWER 0x00   // Potência (0x00 a 0x03) - 0x00 = 30dBm, 0x03 = 21dBm
-  // Parâmetros padrão do E220-900T30D
-  // ADDH, ADDL, SPEED (REG0), OPTION (REG1), CHANNEL (REG2), WOR (REG3), CRYPT_H, CRYPT_L
-  // Default: ([0xFF, 0xFF, 0x62, 0x00, 0x12, 0x03, 0x00, 0x00])
-  constexpr const uint8_t DEFAULT_PARAMS[8] = {
-    LORA_ADDRH, LORA_ADDRL, LORA_SPEED, LORA_POWER, LORA_CHANNEL, LORA_WOR, 0x00, 0x00
-  };
+  #define POWER_30 3        // https://github.com/xreef/EByte_LoRa_E220_Series_Library/tree/master?tab=readme-ov-file
+  #define LORA_EXT_AUX 38
+  #define LORA_EXT_M0 39
+  #define LORA_EXT_M1 40
 #endif
 
 // === Variáveis e Constantes Globais ===
@@ -209,6 +199,9 @@ void wait_aux_high();
 void set_mode(const String &mode = "normal");
 boolean read_parameters();
 bool write_parameters(Configuration config);
+uint8_t* read_parametersBin(HardwareSerial &ser);
+bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]);
+bool isNumber(const String &str);
 
 #endif
 // main.h
