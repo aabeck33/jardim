@@ -202,6 +202,8 @@ bool write_parameters(Configuration config);
 uint8_t* read_parametersBin(HardwareSerial &ser);
 bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]);
 bool isNumber(const String &str);
+void printParameters(struct Configuration configuration);
+void printModuleInformation(struct ModuleInformation moduleInformation);
 
 #endif
 // main.h
