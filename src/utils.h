@@ -257,23 +257,33 @@ void processarComando(const String &cmd) {
 void receberComandoLoRa() {
   String recebido;
 
-  int state = lora.receive(recebido);
+  #if (USE_LORA)
+    int state = lora.receive(recebido);
+    
+    if (state == RADIOLIB_ERR_NONE) {
+      Serial.print("Comando recebido: ");
+      Serial.println(recebido);
 
-  if (state == RADIOLIB_ERR_NONE) {
-    Serial.print("Comando recebido: ");
-    Serial.println(recebido);
+      processarComando(recebido);
 
-    processarComando(recebido);
-
-  } else if (state != RADIOLIB_ERR_RX_TIMEOUT) {
-    Serial.print("Erro ao receber: ");
-    Serial.println(state);
-  }
+    } else if (state != RADIOLIB_ERR_RX_TIMEOUT) {
+      Serial.print("Erro ao receber: ");
+      Serial.println(state);
+    }
+  #endif
+  #if (USE_LORA_EXT)
+    if (LoRaExt.available() > 0) {
+      ResponseContainer rc = LoRaExt.receiveMessage();
+      String recebido = rc.data;
+      Serial.print("Mensagem recebida: ");
+      Serial.println(recebido);
+    }
+  #endif
 }
 
 
 /**
- * @brief Aguarda um tempo específico em minutos, alimentando o watchdog.
+ * @brief Aguarda um tempo específico em minutos por comandos via LoRa, alimentando o watchdog.
  * @param tempo [Int] Tempo em minutos para aguardar.
  */
 void aguardar(const uint8_t tempo) {
@@ -394,7 +404,7 @@ void printLog() {
 
 
 /**
- * @brief Envia os dados coletados via LoRa.
+ * @brief Envia os dados coletados via LoRa ou LoRaExt.
  * @param payload [String] JSON com os dados a serem enviados.
  */
 void enviarDados(const String &payload) {
@@ -402,12 +412,23 @@ void enviarDados(const String &payload) {
   Serial.println(payload);
 
   // Enviar via LoRa
-  int status = lora.transmit(payload.c_str());
-  if (status == RADIOLIB_ERR_NONE) {
-    dispmsg("Dados enviados.");
-  } else {
-    showError(String(status), 2);
-  }
+  #if (USE_LORA_EXT)
+    //ResponseStatus rs = LoRaExt.sendFixedMessage(LORA_ADDRH, LORA_ADDRL, LORA_CHANNEL, payload.c_str(), payload.length());
+    ResponseStatus rs = LoRaExt.sendMessage(payload.c_str(), payload.length());  
+    if (rs.code == E220_SUCCESS) {
+      Serial.println("Mensagem enviada com sucesso!");
+    } else {
+      Serial.println("Falha ao enviar mensagem!");
+    }
+  #endif
+  #if (USE_LORA)
+    int status = lora.transmit(payload.c_str());
+    if (status == RADIOLIB_ERR_NONE) {
+      dispmsg("Dados enviados.");
+    } else {
+      showError(String(status), 2);
+    }
+  #endif
 }
 
 /**

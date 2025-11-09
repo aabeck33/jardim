@@ -196,11 +196,11 @@ void loop() {
 
   #if (USE_ENCRYPTION)
     String encryptedPayload = xorEncrypt(payload, XOR_KEY);   // Encripta os dados para envio
-    #if USE_LORA
+    #if (USE_LORA || USE_LORA_EXT)
       enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
     #endif
   #else
-    #if USE_LORA
+    #if (USE_LORA || USE_LORA_EXT)
       enviarDados(payload);
     #endif
   #endif
@@ -230,7 +230,17 @@ void loop() {
     aguardar(TEMPO_ENVIO);
   #endif
 /*
-int state = lora.transmit("PING123\n");
+  // Teste de transmissão LoRaExt
+  ResponseStatus rs = LoRaExt.sendMessage("PING123\n");
+  if (rs.code == E220_SUCCESS) {
+    dispmsg("Transmissão LoRaExt OK.");
+  } else {
+    dispmsg("Erro na transmissão LoRaExt: " + String(rs.getResponseDescription()));
+  }
+*/
+/*
+  // Teste de transmissão LoRa
+  int state = lora.transmit("PING123\n");
   if (state == RADIOLIB_ERR_NONE) {
     dispmsg("Transmissão LoRa OK.");
   } else {
