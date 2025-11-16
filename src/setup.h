@@ -266,7 +266,7 @@ bool setupSerial2() {
  */
 bool setupLoRaExt() {
   dispmsg("Inicializando LoRa Ext...");
-  Configuration configE220std;    // Cria uma instância da estrutura Configuration com valores padrão
+  // Define os parâmetros padrão
   configE220std.ADDH = LORA_ADDRH;
   configE220std.ADDL = LORA_ADDRL;
   configE220std.SPED.uartBaudRate = UART_BPS_9600;

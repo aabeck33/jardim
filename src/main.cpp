@@ -133,7 +133,7 @@ void setup() {
   // Inicializa o LoRa Externo E220
   #if (USE_LORA_EXT)
     setupLoRaExt();
-    //write_parameters(configE220std); // Grava parâmetros padrão no LoRa Externo - descomente para reconfigurar
+    write_parameters(configE220std); // Grava parâmetros padrão no LoRa Externo - descomente para reconfigurar
   #else
     dispmsg("LoRaExt desativado.");
   #endif
