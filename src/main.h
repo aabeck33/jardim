@@ -76,6 +76,7 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define LORA_EXT_AUX 38
   #define LORA_EXT_M0 39
   #define LORA_EXT_M1 40
+  constexpr Configuration configE220std; // Configuração padrão do LoRa Externo
 #endif
 
 // === Variáveis e Constantes Globais ===

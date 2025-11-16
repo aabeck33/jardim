@@ -160,9 +160,11 @@ void iniciarPinos() {
   pinMode(LED_PIN, OUTPUT);                       // Pino do LED integrado
   pinMode(PINO_VEXT, OUTPUT);                     // Pino Vext
   pinMode(OLED_RESET, OUTPUT);                    // Pino de reset do OLED
-  pinMode(LORA_EXT_M0, OUTPUT);                   // Pino M0 do LoRa externo
-  pinMode(LORA_EXT_M1, OUTPUT);                   // Pino M1 do LoRa externo
-  pinMode(LORA_EXT_AUX, INPUT);                   // Pino AUX do LoRa externo
+  #if (USE_LORA_EXT)
+    pinMode(LORA_EXT_M0, OUTPUT);                   // Pino M0 do LoRa externo
+    pinMode(LORA_EXT_M1, OUTPUT);                   // Pino M1 do LoRa externo
+    pinMode(LORA_EXT_AUX, INPUT);                   // Pino AUX do LoRa externo
+  #endif
 
   analogReadResolution(ANALOG_RESOLUTION);
   Serial.println("Pinos configurados.");
@@ -264,7 +266,21 @@ bool setupSerial2() {
  */
 bool setupLoRaExt() {
   dispmsg("Inicializando LoRa Ext...");
-  
+  Configuration configE220std;    // Cria uma instância da estrutura Configuration com valores padrão
+  configE220std.ADDH = LORA_ADDRH;
+  configE220std.ADDL = LORA_ADDRL;
+  configE220std.SPED.uartBaudRate = UART_BPS_9600;
+  configE220std.SPED.uartParity = MODE_00_8N1;
+  configE220std.SPED.airDataRate = AIR_DATA_RATE_010_24;
+  configE220std.CHAN = LORA_CHANNEL;
+  configE220std.OPTION.subPacketSetting = SPS_200_00;
+  configE220std.OPTION.RSSIAmbientNoise = RSSI_AMBIENT_NOISE_DISABLED;
+  configE220std.OPTION.transmissionPower = POWER_30;
+  configE220std.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
+  configE220std.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
+  configE220std.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
+  configE220std.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
+
   // Inicia a comunicação com o módulo
   LoRaExt.begin();
   

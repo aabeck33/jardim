@@ -123,14 +123,17 @@ void setup() {
     setupSPIFFS();
   #endif
 
+  // Inicializa o LoRa interno SX1262
   #if (USE_LORA)
     setupLoRa();
   #else
     dispmsg("LoRa desativado.");
   #endif
 
+  // Inicializa o LoRa Externo E220
   #if (USE_LORA_EXT)
     setupLoRaExt();
+    //write_parameters(configE220std); // Grava parâmetros padrão no LoRa Externo - descomente para reconfigurar
   #else
     dispmsg("LoRaExt desativado.");
   #endif
@@ -239,12 +242,12 @@ void loop() {
   }
 */
 /*
-  // Teste de transmissão LoRa
+  // Teste de transmissão LoRa SX1262
   int state = lora.transmit("PING123\n");
   if (state == RADIOLIB_ERR_NONE) {
-    dispmsg("Transmissão LoRa OK.");
+    dispmsg("Transmissão LoRa SX1262 OK.");
   } else {
-    dispmsg("Erro na transmissão LoRa: " + String(state));
+    dispmsg("Erro na transmissão LoRa SX1262: " + String(state));
   }
   */
 }
