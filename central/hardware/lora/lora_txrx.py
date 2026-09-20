@@ -1,10 +1,29 @@
 # Script para comunicação LoRa utilizando o módulo E220
-
-import config as cfg
-import lora_ctrl as loractrl
+from config import settings as cfg
+from . import lora_ctrl as loractrl
 import serial
 import time
-import RPi.GPIO as GPIO
+
+try:
+    import RPi.GPIO as GPIO
+except (ImportError, RuntimeError):
+    class DummyGPIO:
+        BCM = "BCM"
+        OUT = "OUT"
+        IN = "IN"
+        HIGH = 1
+        LOW = 0
+        @staticmethod
+        def setmode(mode): pass
+        @staticmethod
+        def setup(pin, mode): pass
+        @staticmethod
+        def output(pin, value): pass
+        @staticmethod
+        def input(pin): return 1
+        @staticmethod
+        def cleanup(): pass
+    GPIO = DummyGPIO()
 
 
 def xor_decrypt(input_str: str, key: int) -> str:
@@ -76,19 +95,9 @@ if __name__ == "__main__":
                 print("Recebido:", data, data.hex())
             time.sleep(0.1)
 
-        """while True:
-            print("Enviando mensagem...")
-            send_message(ser, "Hello LoRa E220!")
-            time.sleep(2)
-            print("Aguardando resposta...")
-            receive_message(ser, timeout=25)
-            time.sleep(2)"""
-
     except KeyboardInterrupt:
         print("Encerrando comunicação.")
     finally:
         if 'ser' in locals() and ser.is_open:
             ser.close()
         GPIO.cleanup()
-
-# central/lora_txrx.py

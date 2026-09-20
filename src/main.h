@@ -138,6 +138,7 @@ constexpr uint16_t WIFI_TIMEOUT = 10000;               // Timeout do Wi-Fi em mi
 RTC_DATA_ATTR bool modoSeguro = false;   // Modo seguro para evitar loops infinitos
 bool displayStatus = false;              // Status do display OLED
 bool serialOk = false;                   // Indica se a Serial foi iniciada corretamente
+unsigned long lastMsgMillis = 0;         // Armazena o tempo da última mensagem exibida
 
 #if (USE_WIFI)
   unsigned long ultimaTentativaWiFi = 0; // Armazena o tempo da última tentativa de conexão Wi-Fi
@@ -182,7 +183,7 @@ void connectToWiFi();
 float readBatteryVoltage();
 void dispmsg(const String &msg, const uint8_t linha = 0, const uint8_t coluna = 0,
   const uint8_t tamanho = 1, const uint8_t corTexto = SSD1306_WHITE, 
-  const uint8_t corFundo = SSD1306_BLACK, const bool inverter = false);
+  const uint8_t corFundo = SSD1306_BLACK, const bool inverter = false, const bool forceDelay = false);
 void verificarUsoRAM();
 void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc);
 float getInternalTemperature(const String &unidade = "celsius");

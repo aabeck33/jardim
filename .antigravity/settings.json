@@ -1,0 +1,18 @@
+{
+    "antigravity.cpp.includePath": [
+        "c:/Users/beck_/OneDrive/Documents/eclipse-workspace/jardim/include",
+        "c:/Users/beck_/OneDrive/Documents/eclipse-workspace/jardim/src",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/cores/esp32",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/variants/heltec_wifi_lora_32_V3",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
+        "C:/Users/beck_/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
+        "c:/Users/beck_/OneDrive/Documents/eclipse-workspace/jardim/.pio/libdeps/heltec_wifi_lora_32_v3/**"
+    ],
+    "antigravity.cpp.compilerPath": "C:/Users/beck_/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc.exe",
+    "antigravity.projectType": "PlatformIO",
+    "antigravity.framework": "Arduino",
+    "antigravity.target": "heltec_wifi_lora_32_v3"
+}

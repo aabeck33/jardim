@@ -20,10 +20,10 @@ void setupWiFi() {
     WiFi.softAP(ssid, password);
     IPAddress IP = WiFi.softAPIP();
 
-    dispmsg("AP: " + String(ssid));
-    dispmsg("IP: " + IP.toString(), 1);
+    dispmsg("AP: " + String(ssid), 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
+    dispmsg("IP: " + IP.toString(), 1, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   } else if (WIFI_MODE == WIFI_STA) {
-    dispmsg("Conectando ao Wi-Fi...");
+    dispmsg("Conectando ao Wi-Fi...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
 
     // Configura o Wi-Fi como cliente
     WiFi.setSleep(false);           // Ativa/Desativa o modo de sono do Wi-Fi
@@ -45,15 +45,16 @@ void setupWiFi() {
  * Exibe mensagem de sucesso ou sinaliza erro caso não consiga montar.
  */
 void setupSPIFFS() {
-  Serial.begin(115200);
+  dispmsg("Inicializando SPIFFS...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
+
   if (!SPIFFS.begin(true)) {
     showError("Erro ao montar SPIFFS", 1);
     sinalizaErro(ERROSPIFFS_PISCA, "rapido");
-    while (true) {
-      showError("SPIFFS não montado.", 1);
-    }
+    delay(2000);
+    modoSeguro = true;
+    esp_restart();
   } else {
-    dispmsg("SPIFFS sucesso.");
+    dispmsg("SPIFFS sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   }
 }
 
@@ -74,7 +75,7 @@ void setupSPIFFS() {
  *    Rb ≈ 30.52 * 12 * 0.8 ≈ 292 bps
  */
 void setupLoRa() {
-  dispmsg("Inicializando LoRa...");
+  dispmsg("Inicializando LoRa...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
 
   int state = lora.begin(
     freqLoRa,    // Frequência em MHz
@@ -90,7 +91,7 @@ void setupLoRa() {
   delay(100);
 
   #if (DEBUG_MODE)
-    dispmsg("Estado LoRa: " + String(state), 1);
+    dispmsg("Estado LoRa: " + String(state), 1, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   #endif
 
   if (state == RADIOLIB_ERR_NONE) {
@@ -99,15 +100,15 @@ void setupLoRa() {
       showError("Erro ao habilitar CRC LoRa.", 1);
       sinalizaErro(ERROLORA_PISCA, "rapido");
     } else {
-      dispmsg("LoRa ini sucesso.");
+      dispmsg("LoRa ini sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     }
   } else {
-    showError(String(state), 2);
-    while (true) {
-      showError("LoRa não iniciado.", 1);
-      sinalizaErro(ERROLORA_PISCA, "rapido");
-      delay(2000);
-    }
+    String errorMsg = String(state) + " - LoRa não iniciado.";
+    showError(errorMsg, 2);
+    sinalizaErro(ERROLORA_PISCA, "rapido");
+    delay(2000);
+    modoSeguro = true;
+    esp_restart();
   }
   delay(2000);
 }
@@ -132,11 +133,10 @@ void setupDisplay() {
   // Inicializa o display OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     showError("Falha ao inicializar o display OLED.", 1);
-    while (true) {
-      showError("Display não iniciado.", 1);
-      sinalizaErro(ERRODISPLAY_PISCA, "rapido");
-      delay(2000);
-    }
+    sinalizaErro(ERRODISPLAY_PISCA, "rapido");
+    delay(2000);
+    modoSeguro = true;
+    esp_restart();
   }
   display.display();
   Serial.println("Display OLED iniciado.");
@@ -178,7 +178,7 @@ void iniciarPinos() {
 bool setupBluetooth() {
   // Inicializa Bluetooth
   if (!btStart()) {
-    dispmsg("Bluetooth iniciado.");
+    dispmsg("Bluetooth iniciado.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     return true;
   } else {
     showError("Falha ao iniciar Bluetooth.", 1);
@@ -207,7 +207,7 @@ bool setupSerial() {
   #if (USE_DISPLAY)
     setupDisplay();
   #else
-    dispmsg("Display OLED desativado.");
+    dispmsg("Display OLED desativado.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   #endif
 
   if (!Serial) {
@@ -254,7 +254,7 @@ bool setupSerial2() {
     delay(2000);
     return false;
   } else {
-    dispmsg("Serial 2 iniciada com sucesso.");
+    dispmsg("Serial 2 iniciada com sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     return true;
   }
 }
@@ -265,7 +265,7 @@ bool setupSerial2() {
  * @return [Boolean] true se a configuração foi bem-sucedida, false caso contrário.
  */
 bool setupLoRaExt() {
-  dispmsg("Inicializando LoRa Ext...");
+  dispmsg("Inicializando LoRa Ext...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   // Define os parâmetros padrão
   configE220std.ADDH = LORA_ADDRH;
   configE220std.ADDL = LORA_ADDRL;
@@ -291,7 +291,7 @@ bool setupLoRaExt() {
     Configuration *config = (Configuration*)rsc.data;
     
     // Se chegou aqui, conseguiu ler a configuração, então o módulo está respondendo
-    dispmsg("LoRa Ext ini sucesso.");
+    dispmsg("LoRa Ext ini sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     
     // Libera a memória alocada
     rsc.close();

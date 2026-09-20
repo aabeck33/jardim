@@ -58,17 +58,17 @@ void sinalizaErro(const uint8_t numPisca, const String &frequencia) {
  */
 void showError(const String &message, const uint8_t errorType) {
   if (errorType == 0) {
-    dispmsg("ERRO CRÍTICO: " + message + "\nReiniciando em modo seguro...");
+    dispmsg("ERRO CRÍTICO: " + message + "\nReiniciando em modo seguro...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     modoSeguro = true;    // Seta a flag
     sinalizaErro(ERROCRIT_PISCA, "rapido");
     delay(1000);
     esp_restart();        // Reinicia o ESP32 e entra em modo seguro
   } else if (errorType == 1) {
-    dispmsg("Erro grave: " + message);
+    dispmsg("Erro grave: " + message, 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   } else if (errorType == 2) {
-    dispmsg("Erro de comunicação: " + message);
+    dispmsg("Erro de comunicação: " + message, 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   } else {
-    dispmsg("Erro: " + message);
+    dispmsg("Erro: " + message, 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
   }
 }
 
@@ -167,7 +167,7 @@ void verificarUsoRAM() {
  * @param corFundo [uint8_t] Cor de fundo.
  */
 void dispmsg(const String &msg, const uint8_t linha, const uint8_t coluna, const uint8_t tamanho, 
-  const uint8_t corTexto, const uint8_t corFundo, const bool inverter) {
+  const uint8_t corTexto, const uint8_t corFundo, const bool inverter, const bool forceDelay) {
   Serial.println(msg);
   #if (USE_DISPLAY)
     displayOnOff();
@@ -181,7 +181,11 @@ void dispmsg(const String &msg, const uint8_t linha, const uint8_t coluna, const
     }
     display.print(msg);
     display.display();
-    delay(3000);
+    
+    lastMsgMillis = millis(); // Registra o tempo da última mensagem exibida
+    if (forceDelay) {
+      delay(3000); // Mantém o delay apenas se explicitamente solicitado (ex: boot ou erros)
+    }
   #endif
 }
 
@@ -232,10 +236,10 @@ float getInternalTemperature(const String &unidade) {
  */
 void processarComando(const String &cmd) {
   if (cmd == "LED_ON") {
-    digitalWrite(2, HIGH);  // LED no GPIO2
+    digitalWrite(LED_PIN, HIGH);  // LED no GPIO2
     Serial.println("LED ligado");
   } else if (cmd == "LED_OFF") {
-    digitalWrite(2, LOW);
+    digitalWrite(LED_PIN, LOW);
     Serial.println("LED desligado");
   } else if (cmd.startsWith("SLEEP")) {
     int tempo = cmd.substring(6).toInt();
@@ -538,24 +542,8 @@ boolean read_parameters() {
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
 bool write_parameters(Configuration config) {
-  if (config.SPED.uartBaudRate >= 0 && config.SPED.uartBaudRate <= 7) {
-    config.ADDH = LORA_ADDRH;
-    config.ADDL = LORA_ADDRL;
-
-    config.SPED.uartBaudRate = UART_BPS_9600;
-    config.SPED.uartParity = MODE_00_8N1;
-    config.SPED.airDataRate = AIR_DATA_RATE_010_24;
-
-    config.CHAN = LORA_CHANNEL;
-
-    config.OPTION.subPacketSetting = SPS_200_00;
-    config.OPTION.RSSIAmbientNoise = RSSI_AMBIENT_NOISE_DISABLED;
-    config.OPTION.transmissionPower = POWER_30;
-
-    config.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
-    config.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
-    config.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
-    config.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
+  if (config.SPED.uartBaudRate >= 0 && config.SPED.uartBaudRate <= 7) { //verificar se está ok...
+    config = configE220std; // Usa configuração padrão
   }
 
   ResponseStatus rsc = LoRaExt.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);

@@ -1,12 +1,37 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\beck_\\OneDrive\\Documents\\eclipse-workspace\\jardim\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\beck_\\OneDrive\\Documents\\eclipse-workspace\\jardim\\central\\test\\test_csv.py||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:central\\test\\test_csv.py||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "test_csv.py",
+              "DocumentMoniker": "C:\\Users\\beck_\\OneDrive\\Documents\\eclipse-workspace\\jardim\\central\\test\\test_csv.py",
+              "RelativeDocumentMoniker": "central\\test\\test_csv.py",
+              "ToolTip": "C:\\Users\\beck_\\OneDrive\\Documents\\eclipse-workspace\\jardim\\central\\test\\test_csv.py",
+              "RelativeToolTip": "central\\test\\test_csv.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-03-26T01:29:27.218Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

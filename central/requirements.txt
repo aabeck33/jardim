@@ -1,0 +1,8 @@
+pyserial
+scikit-learn
+pandas
+joblib
+requests
+arrow
+pytz
+streamlit
