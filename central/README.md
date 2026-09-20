@@ -92,31 +92,39 @@ central/
 ## 🔍 Descrição Detalhada dos Módulos
 
 ### 1. Configurações (`config/settings.py`)
+
 Centraliza variáveis globais, pinos de GPIO, parâmetros da API Stormglass e configurações seriais/LoRa E220 (`PIN_BOMBA`, `PIN_M0`, `PIN_M1`, `PIN_AUX`, `STORMGLASS_API_KEY`, etc.).
 
 ### 2. Orquestrador Core (`core/engine.py`)
+
 A classe `IrrigationEngine` executa o loop principal de monitoramento: escuta mensagens via LoRa, consulta a previsão do tempo no serviço de clima, solicita a inferência ao motor de IA e aciona a bomba d'água via GPIO.
 
 ### 3. Hardware (`hardware/`)
+
 - `gpio_controller.py`: Abstração para acionar a bomba d'água (`aciona_bomba`) e inicializar os GPIOs com suporte automático a simulação em desktops (onde o pacote `RPi.GPIO` não existe).
 - `hardware/lora/`: Driver para módulos LoRa E220-900M30S:
   - `lora_receiver.py`: `LoRaRcvCont` cria uma thread dedicada em segundo plano para capturar pacotes de sensores via porta serial (`/dev/serial0`).
   - `lora_ctrl.py`: Permite ler e alterar parâmetros operacionais (endereço, taxa de transmissão, canal e potência).
 
 ### 4. Serviços (`services/weather_service.py`)
+
 - `get_weather()`: Consulta a API Stormglass e retorna métricas climáticas. Possui um mecanismo de fallback com valores neutros para evitar paradas do sistema em caso de falhas na API.
 
 ### 5. Inteligência Artificial (`ia/`)
+
 - `decision_engine.py`: Função `decide_irrigation()` que consome dados do sensor e do clima através de dois modelos serializados:
   1. **Classificação (`ia/models/modelo_class.pkl`)**: Determina se deve irrigar (binário: 0 ou 1).
   2. **Regressão (`ia/models/modelo_reg.pkl`)**: Determina o tempo ideal em segundos (ex: 15s).
 - `trainer.py`: Concentra as rotinas de treinamento inicial (`RandomForest`) e treinamento contínuo (`SGDClassifier`/`SGDRegressor`) salvando os artefatos em `ia/models/`.
 
 ### 6. Dashboard Streamlit (`pages/app.py`)
+
 Interface gráfica web moderna desenvolvida em Streamlit para visualização de métricas (status da bomba, umidade atual, chuva prevista) e exibição do histórico de dados.
+
 - **Execução**: `streamlit run pages/app.py`
 
 ### 7. Logs do Sistema (`logs/app.log` & `utils/logger.py`)
+
 O módulo `utils/logger.py` gera logs formatados gravados simultaneamente no console e no arquivo `logs/app.log`, permitindo rastrear o histórico de acionamentos e diagnóstico de erros.
 
 ---
@@ -124,19 +132,29 @@ O módulo `utils/logger.py` gera logs formatados gravados simultaneamente no con
 ## 🏃 Como Executar
 
 ### Executar a Aplicação Backend (Core Engine):
+
 ```bash
 python main.py
 ```
 
 ### Executar o Dashboard Web (Streamlit):
+
 ```bash
 streamlit run pages/app.py
 ```
 
 ### Executar a Suíte de Testes:
+
 ```bash
 python tests/test_none_fix.py
 ```
+
+### Teste de serial:
+
+```bash
+python3 -m serial.tools.miniterm /dev/serial0 9600
+```
+
 
 ---
 *Autor: Alvaro Adriano Beck*  

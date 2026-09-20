@@ -81,6 +81,9 @@ if __name__ == "__main__":
             parity='N', 
             stopbits=1
         )
+        if cfg.DEBUG_MODE:
+            print("Serial aberta:", ser.port)
+            print("Baudrate:", ser.baudrate)
         time.sleep(2)
 
         loractrl.write_parameters(ser, cfg.DEFAULT_PARAMS)

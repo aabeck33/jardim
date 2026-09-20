@@ -1,8 +1,8 @@
-pyserial
-scikit-learn
-pandas
-joblib
-requests
-arrow
-pytz
-streamlit
+pyserial>=3.5
+scikit-learn>=0.24.0
+pandas>=1.2.0
+joblib>=1.0.0
+requests>=2.25.0
+arrow>=1.0.0
+pytz>=2021.1
+streamlit>=1.0.0
