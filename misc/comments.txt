@@ -1,0 +1,8 @@
+Para criar o arquivo .bin que reclau de faltar
+platformio run --target buildfs
+
+
+Instalei o driver abaixo para USB -> Serial:
+CP210x_Universal_Windows_Driver.zip
+
+
