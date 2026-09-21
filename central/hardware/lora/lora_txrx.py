@@ -3,6 +3,7 @@ from config import settings as cfg
 from . import lora_ctrl as loractrl
 import serial
 import time
+import json
 
 try:
     import RPi.GPIO as GPIO
@@ -92,11 +93,57 @@ if __name__ == "__main__":
         loractrl.read_parameters(ser)
         time.sleep(0.5)
 
+        buffer = bytearray()
+        print("Aguardando mensagens LoRa...")
         while True:
             if ser.in_waiting:
-                data = ser.read(ser.in_waiting)
-                print("Recebido:", data, data.hex())
-            time.sleep(0.1)
+                bloco = ser.read(ser.in_waiting)
+                buffer.extend(bloco)
+
+                if cfg.DEBUG_MODE:
+                    print(
+                        f"[RX bloco] {len(bloco)} bytes: "
+                        f"{bloco.hex()}"
+                    )
+
+                while b"\n" in buffer:
+                    mensagem, _, restante = buffer.partition(b"\n")
+                    buffer = bytearray(restante)
+
+                    if not mensagem:
+                        continue
+
+                    try:
+                        texto = mensagem.decode("utf-8")
+                        dados = json.loads(texto)
+
+                        print("\nJSON recebido:")
+                        print(
+                            json.dumps(
+                                dados,
+                                indent=2,
+                                ensure_ascii=False
+                            )
+                        )
+
+                    except UnicodeDecodeError as erro:
+                        print(
+                            "Erro ao decodificar UTF-8:",
+                            erro
+                        )
+                        print("Dados:", mensagem.hex())
+
+                    except json.JSONDecodeError as erro:
+                        print("JSON inválido:", erro)
+                        print(
+                            "Conteúdo:",
+                            mensagem.decode(
+                                "utf-8",
+                                errors="replace"
+                            )
+                        )
+
+            time.sleep(0.05)
 
     except KeyboardInterrupt:
         print("Encerrando comunicação.")

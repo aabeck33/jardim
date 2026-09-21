@@ -357,8 +357,11 @@ String coletarDados() {
   dados["temperatura"] = temperatura;
 
   // Ler a tensão da bateria
-  float bateria = readBatteryVoltage();
-  dados["bateria"] = bateria;
+  #if (USE_BATTERY)
+    dados["bateria"] = readBatteryVoltage();
+  #else
+    dados["bateria"] = nullptr;
+  #endif
 
   // Criar o array para os valores de umidade
   JsonArray umidade = dados.createNestedArray("umidade");
@@ -511,25 +514,24 @@ void set_mode(const String &mode) {
  * @return [boolean] true se a leitura foi bem-sucedida, false caso contrário.
  */
 boolean read_parameters() {
-  ResponseStructContainer rsc = LoRaExt.getConfiguration();
+    ResponseStructContainer rsc =
+        LoRaExt.getConfiguration();
 
-  if (rsc.status.code == E220_SUCCESS) {
-    // It's important get configuration pointer before all other operation
-    Configuration config_E220 = *(Configuration*)rsc.data;
+    if (rsc.status.code != E220_SUCCESS ||
+        rsc.data == nullptr) {
+        Serial.print("[E220] Falha ao ler parâmetros: ");
+        Serial.println(rsc.status.getResponseDescription());
+        return false;
+    }
 
-    Serial.println("[E220] Parâmetros lidos com sucesso!");
-    Serial.println("-------------------------------------------\n");
-    Serial.println(rsc.status.getResponseDescription());
-    Serial.println("-------------------------------------------\n");
-    Serial.println(rsc.status.code);
-    Serial.println("-------------------------------------------\n");
-    printParameters(config_E220);
-    rsc.close(); // Libera memória alocada
+    Configuration configuration =
+        *(Configuration*)rsc.data;
+
+    Serial.println("[E220] Parâmetros lidos com sucesso.");
+    printParameters(configuration);
+
+    rsc.close();
     return true;
-  } else {
-    Serial.println("[E220] Falha ao ler parâmetros");
-    return false;
-  }
 }
 
 
@@ -541,24 +543,22 @@ boolean read_parameters() {
  *    WRITE_CFG_TEMP: temporário, usado para testes.
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
-bool write_parameters(Configuration config) {
-  if (config.SPED.uartBaudRate >= 0 && config.SPED.uartBaudRate <= 7) { //verificar se está ok...
-    config = configE220std; // Usa configuração padrão
-  }
+bool write_parameters(const Configuration &config) {
+    ResponseStatus status = LoRaExt.setConfiguration(
+        config,
+        WRITE_CFG_PWR_DWN_SAVE
+    );
 
-  ResponseStatus rsc = LoRaExt.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+    if (status.code == E220_SUCCESS) {
+        Serial.println(
+            "[E220] Parâmetros escritos com sucesso."
+        );
+        return true;
+    }
 
-  if (rsc.code == E220_SUCCESS) {
-    Serial.println("[E220] Parâmetros escritos com sucesso!");
-    return true;
-  } else {
     Serial.print("[E220] Falha ao escrever parâmetros: ");
-    Serial.println(rsc.getResponseDescription());
-    Serial.println("-------------------------------------------\n");
-    Serial.println(rsc.code);
-    Serial.println("-------------------------------------------\n");
+    Serial.println(status.getResponseDescription());
     return false;
-  }
 }
 
 
@@ -792,6 +792,185 @@ void printModuleInformation(struct ModuleInformation moduleInformation) {
     Serial.println("----------------------------------------");
  
 }
+
+/**
+ * @brief Lê os parâmetros do módulo E220 em formato binário.
+ * @return [Boolean] true se a leitura foi bem-sucedida, false caso contrário.
+ */
+bool readParametersE220Bin() {
+    const uint8_t comando[] = {
+        0xC1, 0x00, 0x09
+    };
+
+    uint8_t resposta[12] = {0};
+    size_t quantidade = 0;
+
+    // Entra em modo de configuração.
+    digitalWrite(LORA_EXT_M0, HIGH);
+    digitalWrite(LORA_EXT_M1, HIGH);
+    delay(500);
+
+    // Aguarda o módulo ficar livre, com timeout.
+    unsigned long inicioAux = millis();
+
+    while (digitalRead(LORA_EXT_AUX) == LOW) {
+        if (millis() - inicioAux >= 2000) {
+            Serial.println(
+                "[E220] Timeout aguardando AUX no modo config."
+            );
+
+            digitalWrite(LORA_EXT_M0, LOW);
+            digitalWrite(LORA_EXT_M1, LOW);
+            return false;
+        }
+
+        delay(5);
+    }
+
+    // Limpa qualquer dado antigo.
+    while (Serial2.available()) {
+        Serial2.read();
+    }
+
+    Serial.println("[E220] Solicitando configuração...");
+
+    Serial2.write(comando, sizeof(comando));
+    Serial2.flush();
+
+    // Aguarda exatamente 12 bytes ou timeout.
+    unsigned long inicioResposta = millis();
+
+    while (
+        quantidade < sizeof(resposta) &&
+        millis() - inicioResposta < 1500
+    ) {
+        if (Serial2.available()) {
+            resposta[quantidade++] = Serial2.read();
+        } else {
+            delay(2);
+        }
+    }
+
+    Serial.print("[E220] Resposta bruta: ");
+
+    for (size_t i = 0; i < quantidade; i++) {
+        if (resposta[i] < 0x10) {
+            Serial.print("0");
+        }
+
+        Serial.print(resposta[i], HEX);
+        Serial.print(" ");
+    }
+
+    Serial.println();
+
+    // Retorna para modo normal.
+    digitalWrite(LORA_EXT_M0, LOW);
+    digitalWrite(LORA_EXT_M1, LOW);
+    delay(500);
+
+    if (
+        quantidade != 12 ||
+        resposta[0] != 0xC1 ||
+        resposta[1] != 0x00 ||
+        resposta[2] != 0x09
+    ) {
+        Serial.print("[E220] Resposta inválida. Bytes: ");
+        Serial.println(quantidade);
+        return false;
+    }
+
+    const uint8_t addh = resposta[3];
+    const uint8_t addl = resposta[4];
+    const uint8_t sped = resposta[5];
+    const uint8_t option = resposta[6];
+    const uint8_t channel = resposta[7] & 0x7F;
+    const uint8_t transmissionMode = resposta[8];
+    const uint8_t cryptH = resposta[9];
+    const uint8_t cryptL = resposta[10];
+    const uint8_t extra = resposta[11];
+
+    const uint16_t address =
+        (static_cast<uint16_t>(addh) << 8) | addl;
+
+    const uint32_t baudRates[] = {
+        1200, 2400, 4800, 9600,
+        19200, 38400, 57600, 115200
+    };
+
+    const float airRates[] = {
+        2.4, 2.4, 2.4, 4.8,
+        9.6, 19.2, 38.4, 62.5
+    };
+
+    const char *parities[] = {
+        "8N1", "8O1", "8E1", "8N1"
+    };
+
+    const uint8_t baudIndex =
+        (sped >> 5) & 0b111;
+
+    const uint8_t parityIndex =
+        (sped >> 3) & 0b11;
+
+    const uint8_t airRateIndex =
+        sped & 0b111;
+
+    Serial.println();
+    Serial.println(
+        "--- [E220] Configuração atual ---"
+    );
+
+    Serial.print("Endereço: 0x");
+    if (address < 0x1000) Serial.print("0");
+    if (address < 0x0100) Serial.print("0");
+    if (address < 0x0010) Serial.print("0");
+    Serial.println(address, HEX);
+
+    Serial.print("Baud UART: ");
+    Serial.print(baudRates[baudIndex]);
+    Serial.println(" bps");
+
+    Serial.print("Paridade: ");
+    Serial.println(parities[parityIndex]);
+
+    Serial.print("Air Data Rate: ");
+    Serial.print(airRates[airRateIndex], 1);
+    Serial.println(" kbps");
+
+    Serial.print("Canal: ");
+    Serial.println(channel);
+
+    Serial.print("Frequência aproximada: ");
+    Serial.print(850.125 + channel, 3);
+    Serial.println(" MHz");
+
+    Serial.print("OPTION: 0x");
+    if (option < 0x10) Serial.print("0");
+    Serial.println(option, HEX);
+
+    Serial.print("Transmission mode: 0x");
+    if (transmissionMode < 0x10) Serial.print("0");
+    Serial.println(transmissionMode, HEX);
+
+    Serial.print("CRYPT_H: 0x");
+    if (cryptH < 0x10) Serial.print("0");
+    Serial.println(cryptH, HEX);
+
+    Serial.print("CRYPT_L: 0x");
+    if (cryptL < 0x10) Serial.print("0");
+    Serial.println(cryptL, HEX);
+
+    Serial.print("Byte extra: 0x");
+    if (extra < 0x10) Serial.print("0");
+    Serial.println(extra, HEX);
+
+    Serial.println("--------------------------------");
+    Serial.println();
+
+    return true;
+}
+
 
 #endif
 // utils.h

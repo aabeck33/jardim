@@ -35,7 +35,12 @@
    *
    * @note The SX1262 object is created using the specified pin assignments.
    */
-  SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+  SX1262 lora = new Module(
+    LORA_NSS, 
+    LORA_DIO1, 
+    LORA_RST, 
+    LORA_BUSY
+  );
 #endif
 
 #if (USE_LORA_EXT)
@@ -48,7 +53,14 @@
    *
    * @note The E220 object is created using the specified pin assignments.
    */
-  LoRa_E220 LoRaExt(&Serial2, LORA_EXT_M0, LORA_EXT_M1, LORA_EXT_AUX);
+  LoRa_E220 LoRaExt(
+    &Serial2, 
+    LORA_EXT_AUX, 
+    LORA_EXT_M0, 
+    LORA_EXT_M1
+  );
+
+  bool loraExtPronto = false;
 #endif
 
 #if (USE_DISPLAY)
@@ -62,7 +74,12 @@
    * @param &Wire Reference to the I2C communication object.
    * @param OLED_RESET The pin used to reset the display (can be set to -1 if not used).
    */
-  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+  Adafruit_SSD1306 display(
+    SCREEN_WIDTH, 
+    SCREEN_HEIGHT, 
+    &Wire, 
+    OLED_RESET
+  );
 #endif
 
 
@@ -92,9 +109,9 @@ void setup() {
     setupSerial2();
   #endif
 
-  #if (USE_DISPLAY)
+  #if (USE_DISPLAY && not USE_SERIAL)
     setupDisplay();
-  #else
+  #elseif (not USE_DISPLAY && not USE_SERIAL)
     dispmsg("Display OLED desativado.");
   #endif
 
@@ -132,8 +149,11 @@ void setup() {
 
   // Inicializa o LoRa Externo E220
   #if (USE_LORA_EXT)
-    setupLoRaExt();
-    write_parameters(configE220std); // Grava parâmetros padrão no LoRa Externo - descomente para reconfigurar
+    loraExtPronto = setupLoRaExt();
+    //write_parameters(configE220std); // Grava parâmetros padrão no LoRa Externo - descomente para reconfigurar
+    if (!loraExtPronto) {
+      Serial.println("[E220] Inicialização falhou.");
+    }
   #else
     dispmsg("LoRaExt desativado.");
   #endif
@@ -196,6 +216,7 @@ void loop() {
   #endif
 
   String payload = coletarDados(); // Coleta os dados e cria o JSON para envio
+  payload += '\n';
 
   #if (USE_ENCRYPTION)
     String encryptedPayload = xorEncrypt(payload, XOR_KEY);   // Encripta os dados para envio
@@ -233,13 +254,26 @@ void loop() {
     aguardar(TEMPO_ENVIO);
   #endif
 /*
-  // Teste de transmissão LoRaExt
-  ResponseStatus rs = LoRaExt.sendMessage("PING123\n");
-  if (rs.code == E220_SUCCESS) {
-    dispmsg("Transmissão LoRaExt OK.");
-  } else {
-    dispmsg("Erro na transmissão LoRaExt: " + String(rs.getResponseDescription()));
-  }
+  // Teste de transmissão LoRaExt - comentar
+  Serial.print("[E220] AUX antes: ");
+  Serial.println(digitalRead(LORA_EXT_AUX));
+
+  const char mensagem[] = "PING123\n";
+
+  ResponseStatus status = LoRaExt.sendMessage(
+      mensagem,
+      sizeof(mensagem) - 1
+  );
+
+  Serial.print("[E220] Envio: ");
+  Serial.print(status.code);
+  Serial.print(" - ");
+  Serial.println(status.getResponseDescription());
+
+  Serial.print("[E220] AUX depois: ");
+  Serial.println(digitalRead(LORA_EXT_AUX));
+
+  delay(3000);
 */
 /*
   // Teste de transmissão LoRa SX1262

@@ -163,7 +163,10 @@ void iniciarPinos() {
   #if (USE_LORA_EXT)
     pinMode(LORA_EXT_M0, OUTPUT);                   // Pino M0 do LoRa externo
     pinMode(LORA_EXT_M1, OUTPUT);                   // Pino M1 do LoRa externo
-    pinMode(LORA_EXT_AUX, INPUT);                   // Pino AUX do LoRa externo
+    pinMode(LORA_EXT_AUX, INPUT_PULLUP);            // Pino AUX do LoRa externo
+
+    digitalWrite(LORA_EXT_M0, LOW);
+    digitalWrite(LORA_EXT_M1, LOW);
   #endif
 
   analogReadResolution(ANALOG_RESOLUTION);
@@ -264,43 +267,163 @@ bool setupSerial2() {
  * Escreve os parâmetros definidos no módulo e sinaliza sucesso ou falha.
  * @return [Boolean] true se a configuração foi bem-sucedida, false caso contrário.
  */
-bool setupLoRaExt() {
-  dispmsg("Inicializando LoRa Ext...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
-  // Define os parâmetros padrão
-  configE220std.ADDH = LORA_ADDRH;
-  configE220std.ADDL = LORA_ADDRL;
-  configE220std.SPED.uartBaudRate = UART_BPS_9600;
-  configE220std.SPED.uartParity = MODE_00_8N1;
-  configE220std.SPED.airDataRate = AIR_DATA_RATE_010_24;
-  configE220std.CHAN = LORA_CHANNEL;
-  configE220std.OPTION.subPacketSetting = SPS_200_00;
-  configE220std.OPTION.RSSIAmbientNoise = RSSI_AMBIENT_NOISE_DISABLED;
-  configE220std.OPTION.transmissionPower = POWER_30;
-  configE220std.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
-  configE220std.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
-  configE220std.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
-  configE220std.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
+ bool setupLoRaExt() {
+    Serial.println("[E220] Inicializando módulo externo...");
 
-  // Inicia a comunicação com o módulo
-  LoRaExt.begin();
-  
-  // Verifica se o módulo responde tentando ler sua configuração
-  ResponseStructContainer rsc = LoRaExt.getConfiguration();
-  
-  if (rsc.status.code == E220_SUCCESS) {
-    Configuration *config = (Configuration*)rsc.data;
-    
-    // Se chegou aqui, conseguiu ler a configuração, então o módulo está respondendo
-    dispmsg("LoRa Ext ini sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
-    
-    // Libera a memória alocada
-    rsc.close();
+    LoRaExt.begin();
+    delay(500);
+
+    Serial.print("[E220] AUX: ");
+    Serial.println(digitalRead(LORA_EXT_AUX));
+
+    if (!readParametersE220Bin()) {
+        Serial.println("[E220] Falha ao ler configuração binária.");
+        return false;
+    }
+
+    Serial.println("[E220] Inicialização concluída.");
     return true;
-  } else {
-    showError("Falha ao iniciar LoRa Ext.", 2);
-    sinalizaErro(ERROLORA_PISCA, "rapido");
-    return false;
-  }
+}
+
+
+
+bool setupLoRaExtOld() {
+    dispmsg("Inicializando LoRa Ext...");
+
+    // Serial2 precisa ter sido iniciada antes desta função.
+    LoRaExt.begin();
+    delay(500);
+
+    Serial.print("[E220] AUX antes da leitura: ");
+    Serial.println(digitalRead(LORA_EXT_AUX));
+
+    ResponseStructContainer rsc = LoRaExt.getConfiguration();
+
+    if (rsc.status.code != E220_SUCCESS || rsc.data == nullptr) {
+        Serial.print("[E220] Falha ao ler configuração: ");
+        Serial.println(rsc.status.getResponseDescription());
+
+        // Não acessar rsc.data quando for nullptr.
+        return false;
+    }
+
+    Configuration currentConfig =
+        *(Configuration*)rsc.data;
+
+    Serial.println("[E220] Configuração atual lida:");
+    printParameters(currentConfig);
+
+    rsc.close();
+
+    // Configuração igual à utilizada no Raspberry.
+    currentConfig.ADDH = LORA_ADDRH;
+    currentConfig.ADDL = LORA_ADDRL;
+
+    currentConfig.SPED.uartBaudRate = UART_BPS_9600;
+    currentConfig.SPED.uartParity = MODE_00_8N1;
+    currentConfig.SPED.airDataRate = AIR_DATA_RATE_010_24;
+
+    currentConfig.CHAN = LORA_CHANNEL;
+
+    currentConfig.OPTION.subPacketSetting = SPS_200_00;
+    currentConfig.OPTION.RSSIAmbientNoise = RSSI_AMBIENT_NOISE_DISABLED;
+    currentConfig.OPTION.transmissionPower = 0b00;  // POWER_30
+
+    currentConfig.TRANSMISSION_MODE.fixedTransmission = FT_TRANSPARENT_TRANSMISSION;
+    currentConfig.TRANSMISSION_MODE.enableRSSI = RSSI_DISABLED;
+    currentConfig.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
+    currentConfig.TRANSMISSION_MODE.WORPeriod = WOR_2000_011;
+
+    ResponseStatus status = LoRaExt.setConfiguration(
+        currentConfig,
+        WRITE_CFG_PWR_DWN_SAVE
+    );
+
+    if (status.code != E220_SUCCESS) {
+        Serial.print("[E220] Falha ao gravar configuração: ");
+        Serial.println(status.getResponseDescription());
+        return false;
+    }
+
+    Serial.println("[E220] Configuração gravada com sucesso.");
+
+    delay(500);
+
+    // Confirma a configuração gravada.
+    ResponseStructContainer check =
+        LoRaExt.getConfiguration();
+
+    if (check.status.code != E220_SUCCESS ||
+        check.data == nullptr) {
+
+        Serial.print("[E220] Falha na verificação: ");
+        Serial.println(check.status.getResponseDescription());
+        return false;
+    }
+
+    Configuration savedConfig =
+        *(Configuration*)check.data;
+
+    Serial.println("[E220] Configuração confirmada:");
+    printParameters(savedConfig);
+
+    check.close();
+
+    Serial.print("[E220] AUX depois da configuração: ");
+    Serial.println(digitalRead(LORA_EXT_AUX));
+
+    dispmsg("LoRa Ext iniciado.");
+    return true;
+}
+
+
+void testeE220Bruto() {
+    Serial.println("[E220] Teste bruto iniciado.");
+
+    digitalWrite(LORA_EXT_M0, HIGH);
+    digitalWrite(LORA_EXT_M1, HIGH);
+    delay(500);
+
+    while (Serial2.available()) {
+        Serial2.read();
+    }
+
+    const uint8_t comando[] = {
+        0xC1, 0x00, 0x09
+    };
+
+    Serial2.write(comando, sizeof(comando));
+    Serial2.flush();
+
+    unsigned long inicio = millis();
+    uint8_t quantidade = 0;
+
+    Serial.print("[E220] Resposta: ");
+
+    while (millis() - inicio < 1000) {
+        while (Serial2.available()) {
+            uint8_t valor = Serial2.read();
+
+            if (valor < 0x10) {
+                Serial.print("0");
+            }
+
+            Serial.print(valor, HEX);
+            Serial.print(" ");
+            quantidade++;
+        }
+
+        delay(5);
+    }
+
+    Serial.println();
+
+    Serial.print("[E220] Total de bytes: ");
+    Serial.println(quantidade);
+
+    digitalWrite(LORA_EXT_M0, LOW);
+    digitalWrite(LORA_EXT_M1, LOW);
+    delay(500);
 }
 
 #endif

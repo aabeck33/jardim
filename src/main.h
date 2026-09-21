@@ -33,8 +33,8 @@
 #define USE_LORA false           // Usar LoRa para comunicação
 #define USE_LORA_EXT true       // Usar módulo LORA externo - Precisa de USE_SERIAL_2
 #define USE_BATTERY false       // Usar monitoramento da bateria
-#define USE_ENCRYPTION true     // Usar encriptação
-#define USE_DEEP_SLEEP true    // Usar sono profundo para economia de energia
+#define USE_ENCRYPTION false     // Usar encriptação
+#define USE_DEEP_SLEEP false    // Usar sono profundo para economia de energia
 #define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
 #define USE_WIFI false          // Usar Wi-Fi para comunicação
 #define USE_BLUETOOTH false     // Usar Bluetooth
@@ -72,7 +72,7 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define LORA_ADDRH 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
   #define LORA_ADDRL 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
   #define LORA_CHANNEL 0x41 // Canal (0x00 a 0x50 - 0-80 = 81 canais)
-  #define POWER_30 3        // https://github.com/xreef/EByte_LoRa_E220_Series_Library/tree/master?tab=readme-ov-file
+  //#define POWER_30 3        // https://github.com/xreef/EByte_LoRa_E220_Series_Library/tree/master?tab=readme-ov-file
   #define LORA_EXT_AUX 38
   #define LORA_EXT_M0 39
   #define LORA_EXT_M1 40
@@ -172,6 +172,9 @@ bool setupLoRaExt();
 void setupDisplay();
 void iniciarPinos();
 bool setupBluetooth();
+bool setupLoRaExt();
+bool setupLoRaExtOld();
+void testeE220Bruto();
 
 
 // utils.h
@@ -200,13 +203,16 @@ void VextOnOff(const String &state = "On");
 void resetOLED();
 void wait_aux_high();
 void set_mode(const String &mode = "normal");
-boolean read_parameters();
-bool write_parameters(Configuration config);
-uint8_t* read_parametersBin(HardwareSerial &ser);
-bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]);
 bool isNumber(const String &str);
 void printParameters(struct Configuration configuration);
 void printModuleInformation(struct ModuleInformation moduleInformation);
+bool readParametersE220Bin();
+bool writeParametersE220Bin();
+boolean read_parameters();
+bool write_parameters(const Configuration &config);
+uint8_t* read_parametersBin(HardwareSerial &ser);
+bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]);
+
 
 #endif
 // main.h
