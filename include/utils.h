@@ -16,10 +16,10 @@
 void displayOnOff(const String &state) {
 #if (USE_DISPLAY)
   if (state == "on") {
-    displayStatus = true;
+    systemContext.displayReady = true;
     display.ssd1306_command(SSD1306_DISPLAYON);
   } else {
-    displayStatus = false;
+    systemContext.displayReady = false;
     display.ssd1306_command(SSD1306_DISPLAYOFF);
   }
 #else
@@ -65,7 +65,7 @@ void sinalizaErro(const uint8_t numPisca, const String &frequencia) {
 void showError(const String &message, const uint8_t errorType) {
   if (errorType == 0) {
     dispmsg("ERRO CRÍTICO: " + message + "\nReiniciando em modo seguro...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
-    modoSeguro = true;    // Seta a flag
+    systemContext.safeMode = true;
     sinalizaErro(ERROCRIT_PISCA, "rapido");
     delay(1000);
     esp_restart();        // Reinicia o ESP32 e entra em modo seguro
@@ -85,7 +85,7 @@ void showError(const String &message, const uint8_t errorType) {
 void verificarBotaoModoSeguro() {
   if (digitalRead(PINO_BOTAO_SAIR_SEGURO) == LOW) {
     Serial.println("Botão pressionado. Saindo do modo seguro.");
-    modoSeguro = false;
+    systemContext.safeMode = false;
     esp_restart();
   }
 }
@@ -188,7 +188,7 @@ void dispmsg(const String &msg, const uint8_t linha, const uint8_t coluna, const
     display.print(msg);
     display.display();
     
-    lastMsgMillis = millis(); // Registra o tempo da última mensagem exibida
+    systemContext.lastMessageMillis = millis();
     if (forceDelay) {
       delay(3000); // Mantém o delay apenas se explicitamente solicitado (ex: boot ou erros)
     }

@@ -26,6 +26,7 @@
 #include <SPIFFS.h>
 #include <LoRa_E220.h>
 #include "secrets.h"
+#include <SystemContext.h>
 
 
 // === Configurações do programa ===
@@ -165,10 +166,7 @@ constexpr uint32_t INTERVALO_RECONEXAO_WIFI = 180000;  // Intervalo de reconexã
 constexpr uint16_t WIFI_TIMEOUT = 10000;               // Timeout do Wi-Fi em milissegundos
 
 // Atribui valor persistente mesmo após deep sleep (mantido na RAM RTC)
-extern RTC_DATA_ATTR bool modoSeguro;    // Modo seguro para evitar loops infinitos
-extern bool displayStatus;               // Status do display OLED
-extern bool serialOk;                    // Indica se a Serial foi iniciada corretamente
-extern unsigned long lastMsgMillis;      // Armazena o tempo da última mensagem exibida
+extern RTC_DATA_ATTR SystemContext systemContext;
 
 #if (USE_WIFI)
   extern unsigned long ultimaTentativaWiFi; // Armazena o tempo da última tentativa de conexão Wi-Fi

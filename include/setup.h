@@ -65,7 +65,7 @@ void setupSPIFFS() {
     showError("Erro ao montar SPIFFS", 1);
     sinalizaErro(ERROSPIFFS_PISCA, "rapido");
     delay(2000);
-    modoSeguro = true;
+    systemContext.safeMode = true;
     esp_restart();
   } else {
     dispmsg("SPIFFS sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
@@ -122,7 +122,7 @@ void setupLoRa() {
     showError(errorMsg, 2);
     sinalizaErro(ERROLORA_PISCA, "rapido");
     delay(2000);
-    modoSeguro = true;
+    systemContext.safeMode = true;
     esp_restart();
   }
   delay(2000);
@@ -152,7 +152,7 @@ void setupDisplay() {
     showError("Falha ao inicializar o display OLED.", 1);
     sinalizaErro(ERRODISPLAY_PISCA, "rapido");
     delay(2000);
-    modoSeguro = true;
+    systemContext.safeMode = true;
     esp_restart();
   }
   display.display();

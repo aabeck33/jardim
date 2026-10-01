@@ -10,11 +10,21 @@ include/
   setup.h         Declaracoes de inicializacao dos perifericos
   utils.h         Declaracoes de coleta, telemetria, comandos e suporte
   secrets.h       Credenciais locais do Wi-Fi; nao compartilhar
+  GardenController.h
+                  Orquestracao do ciclo de vida da aplicacao
+  SystemContext.h Estado operacional compartilhado entre modulos
+  interfaces/     Contratos ISensor, IActuator e ITransport
+  services/       Fronteiras de display, telemetria e comunicacao
 
 src/
   main.cpp        Ponto de entrada: setup() e loop()
+  GardenController.cpp
+                  Inicializacao e atualizacao da aplicacao
   setup.cpp       Implementacoes de inicializacao
   utils.cpp       Implementacoes de utilitarios e comunicacao
+  DisplayService.cpp
+  TelemetryService.cpp
+  CommunicationService.cpp
 
 test/
   test_main.cpp   Testes Unity do firmware
@@ -32,7 +42,7 @@ data/              Arquivos de dados do PlatformIO
 platformio.ini    Ambientes, placa, bibliotecas e flags de compilacao
 ```
 
-Os arquivos `.h` ficam em `include/` porque sao a interface publica do firmware. As implementacoes ficam em `src/` e sao compiladas uma unica vez.
+Os arquivos `.h` ficam em `include/` porque sao a interface publica do firmware. As implementacoes ficam em `src/` e sao compiladas uma unica vez. O `GardenController` coordena o fluxo, enquanto os servicos isolam display, telemetria e comunicacao. Os contratos de sensores, atuadores e transportes permitem adicionar implementacoes sem acoplar a aplicacao a um dispositivo concreto.
 
 ## Hardware atual
 

@@ -29,10 +29,7 @@ SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
 #endif
 
 Configuration configE220std;
-RTC_DATA_ATTR bool modoSeguro = false;
-bool displayStatus = false;
-bool serialOk = false;
-unsigned long lastMsgMillis = 0;
+RTC_DATA_ATTR SystemContext systemContext;
 #if (USE_LORA_EXT)
 LoRa_E220 LoRaExt(&Serial2, LORA_EXT_AUX, LORA_EXT_M0, LORA_EXT_M1);
 #endif

@@ -550,29 +550,33 @@ Se interfaces virtuais aumentarem demais o tamanho do firmware, a mesma arquitet
 
 6. Melhorias por prioridade
 Prioridade crítica
-Corrigir o estouro do array em write_parametersBin().
-Retirar as implementações de dentro de setup e utils.
-Proteger integralmente cada módulo com suas opções de compilação.
-Remover credenciais do código-fonte.
-Corrigir a diferença entre a documentação AES-128 e a implementação XOR.
-Confirmar e corrigir a lógica de setupBluetooth().
-Garantir que bombas iniciem sempre desligadas e tenham tempo máximo de funcionamento.
+    Corrigir o estouro do array em write_parametersBin().
+    Retirar as implementações de dentro de setup e utils.
+    Proteger integralmente cada módulo com suas opções de compilação.
+    Remover credenciais do código-fonte.
+    Corrigir a diferença entre a documentação AES-128 e a implementação XOR.
+    Confirmar e corrigir a lógica de setupBluetooth().
+    Garantir que bombas iniciem sempre desligadas e tenham tempo máximo de funcionamento.
 Prioridade alta
-Criar interfaces separadas para sensores, atuadores e transportes.
-Dividir o grande utils.
-Remover estado global sempre que possível.
-Criar uma classe de aplicação ou controlador.
-Transformar o processamento de comandos em um sistema extensível.
-Padronizar códigos de erro e resultados de inicialização.
-Separar configurações de hardware, aplicação e segredos.
+    parte a:
+        Criar interfaces separadas para sensores, atuadores e transportes.
+        Dividir o grande utils.
+        Remover estado global sempre que possível.
+        Criar uma classe de aplicação ou controlador.
+    parte b:
+        Transformar o processamento de comandos em um sistema extensível.
+        Padronizar códigos de erro e resultados de inicialização.
+        Separar configurações de hardware, aplicação e segredos.
 Prioridade média
-Reduzir o uso e concatenação de String.
-Eliminar textos fixos relacionados a intervalos.
-Criar ambientes separados de teste, depuração e produção.
-Melhorar o formato do JSON para identificar cada sensor.
-Incluir unidade, estado, valor bruto e valor calibrado.
-Adicionar versionamento do protocolo de telemetria.
-Criar testes unitários para regras, comandos e serialização.
+    parte a:
+        Reduzir o uso e concatenação de String.
+        Eliminar textos fixos relacionados a intervalos.
+        Criar ambientes separados de teste, depuração e produção.
+        Melhorar o formato do JSON para identificar cada sensor.
+    parte b:
+        Incluir unidade, estado, valor bruto e valor calibrado.
+        Adicionar versionamento do protocolo de telemetria.
+        Criar testes unitários para regras, comandos e serialização.
 7. Estrutura de diretórios sugerida
 Plain Text
 include/
