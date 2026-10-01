@@ -10,6 +10,9 @@ include/
   setup.h         Declaracoes de inicializacao dos perifericos
   utils.h         Declaracoes de coleta, telemetria, comandos e suporte
   secrets.h       Credenciais locais do Wi-Fi; nao compartilhar
+  AppConfig.h     Flags e parametros da aplicacao
+  BoardPins.h     Pinos, radio e parametros especificos da placa
+  StatusCode.h    Resultados padronizados de operacoes
   GardenController.h
                   Orquestracao do ciclo de vida da aplicacao
   SystemContext.h Estado operacional compartilhado entre modulos
@@ -43,6 +46,8 @@ platformio.ini    Ambientes, placa, bibliotecas e flags de compilacao
 ```
 
 Os arquivos `.h` ficam em `include/` porque sao a interface publica do firmware. As implementacoes ficam em `src/` e sao compiladas uma unica vez. O `GardenController` coordena o fluxo, enquanto os servicos isolam display, telemetria e comunicacao. Os contratos de sensores, atuadores e transportes permitem adicionar implementacoes sem acoplar a aplicacao a um dispositivo concreto.
+
+As configuracoes estao separadas por responsabilidade: `AppConfig.h` contem opcoes e parametros da aplicacao, `BoardPins.h` contem o mapa da placa e `secrets.h` contem apenas credenciais locais.
 
 ## Hardware atual
 
@@ -172,6 +177,18 @@ Antes de testar em campo, confirme:
 - canal, endereco, baud rate e parametros de radio;
 - porta serial usada pela Central;
 - ambiente `production` ou `heltec_wifi_lora_32_v3` selecionado conscientemente.
+
+## Comandos extensíveis
+
+Os comandos recebidos pelo E220 ou SX1262 sao encaminhados para `CommandProcessor`. Os comandos built-in sao:
+
+- `LED_ON`
+- `LED_OFF`
+- `SLEEP <segundos>` entre 1 e 86400
+
+Novos comandos podem ser registrados por um modulo usando `registrarComando(nome, handler)`, sem aumentar uma cadeia de `if/else`. Cada handler retorna um `StatusCode`, como `ok`, `invalid_argument`, `communication_failure` ou `unknown_command`.
+
+O ultimo resultado de inicializacao e de comando fica disponível em `SystemContext` por meio de `lastInitStatus` e `lastCommandStatus`.
 
 ## Estado atual e proximos passos
 

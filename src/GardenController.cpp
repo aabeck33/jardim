@@ -4,11 +4,15 @@
 #include <utils.h>
 
 void GardenController::begin() {
+  systemContext.lastInitStatus = StatusCode::NotInitialized;
   esp_task_wdt_init(WDT_TIMEOUT_MS / 1000, true);
   esp_task_wdt_add(NULL);
 
   #if (USE_SERIAL)
     systemContext.serialReady = setupSerial();
+    if (!systemContext.serialReady) {
+      systemContext.lastInitStatus = StatusCode::HardwareFailure;
+    }
     Serial.println("Inicializando " + String(NOME_PROJETO) + " - " + String(VERSAO_FIRMWARE));
     Serial.println("Dispositivo: " + String(DISPOSITIVO));
     Serial.println("Tipo: " + String(TIPO_DISPOSITIVO));
@@ -18,7 +22,9 @@ void GardenController::begin() {
   #endif
 
   #if (USE_SERIAL_2)
-    setupSerial2();
+    if (!setupSerial2()) {
+      systemContext.lastInitStatus = StatusCode::CommunicationFailure;
+    }
   #endif
 
   #if (USE_DISPLAY && !USE_SERIAL)
@@ -28,6 +34,7 @@ void GardenController::begin() {
   #endif
 
   if (systemContext.safeMode) {
+    systemContext.lastInitStatus = StatusCode::NotInitialized;
     dispmsg("Iniciando em MODO SEGURO - SetUp simplificado.");
     return;
   }
@@ -39,7 +46,9 @@ void GardenController::begin() {
   #endif
 
   #if (USE_BLUETOOTH)
-    setupBluetooth();
+    if (!setupBluetooth()) {
+      systemContext.lastInitStatus = StatusCode::HardwareFailure;
+    }
   #else
     btStop();
   #endif
@@ -57,6 +66,7 @@ void GardenController::begin() {
   #if (USE_LORA_EXT)
     loraExtReady_ = setupLoRaExt();
     if (!loraExtReady_) {
+      systemContext.lastInitStatus = StatusCode::CommunicationFailure;
       Serial.println("[E220] Inicialização falhou.");
     }
   #else
@@ -70,6 +80,9 @@ void GardenController::begin() {
   #endif
 
   digitalWrite(LED_PIN, LOW);
+  if (systemContext.lastInitStatus == StatusCode::NotInitialized) {
+    systemContext.lastInitStatus = StatusCode::Ok;
+  }
 }
 
 void GardenController::update() {

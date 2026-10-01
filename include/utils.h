@@ -5,6 +5,7 @@
  * @brief Funções utilitárias para o projeto Jardim Inteligente.
  */
 #include <main.h>
+#include <services/CommandProcessor.h>
 
 #ifdef JARDIM_UTILS_IMPLEMENTATION
 
@@ -240,39 +241,20 @@ float getInternalTemperature(const String &unidade) {
  * @brief Processa comandos recebidos via LoRa.
  * @param cmd [String] Comando recebido.
  */
+CommandProcessor& commandProcessor() {
+  static CommandProcessor processor;
+  return processor;
+}
+
+StatusCode registrarComando(const char* name, CommandHandler handler) {
+  return commandProcessor().registerHandler(name, handler);
+}
+
 void processarComando(const String &cmd) {
-  if (cmd == "LED_ON") {
-    digitalWrite(LED_PIN, HIGH);  // LED no GPIO2
-    Serial.println("LED ligado");
-  } else if (cmd == "LED_OFF") {
-    digitalWrite(LED_PIN, LOW);
-    Serial.println("LED desligado");
-  } else if (cmd.startsWith("SLEEP ")) {
-    String tempoTexto = cmd.substring(6);
-    tempoTexto.trim();
-    bool somenteDigitos = tempoTexto.length() > 0;
-    for (size_t i = 0; i < tempoTexto.length(); ++i) {
-      if (!isdigit(tempoTexto[i])) {
-        somenteDigitos = false;
-        break;
-      }
-    }
-
-    const long tempo = somenteDigitos ? tempoTexto.toInt() : 0;
-    if (!somenteDigitos || tempo <= 0 || tempo > 86400) {
-      Serial.println("Comando SLEEP inválido. Use SLEEP <segundos> entre 1 e 86400.");
-      return;
-    }
-
-    Serial.print("Dormir por ");
-    Serial.print(tempo);
-    Serial.println(" segundos");
-    delay(100);
-    esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(tempo) * 1000000ULL);
-    esp_deep_sleep_start();
-  } else {
-    Serial.println("Comando desconhecido");
-  }
+  const StatusCode status = commandProcessor().process(cmd);
+  systemContext.lastCommandStatus = status;
+  Serial.print("Resultado do comando: ");
+  Serial.println(statusCodeName(status));
 }
 
 

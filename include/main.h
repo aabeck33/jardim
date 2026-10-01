@@ -26,144 +26,17 @@
 #include <SPIFFS.h>
 #include <LoRa_E220.h>
 #include "secrets.h"
+#include <AppConfig.h>
+#include <BoardPins.h>
+#include <StatusCode.h>
 #include <SystemContext.h>
+#include <services/CommandProcessor.h>
 
-
-// === Configurações do programa ===
-#ifndef DEBUG_MODE
-  #define DEBUG_MODE true
-#endif
-#ifndef TEST_MODE
-  #define TEST_MODE true
-#endif
-#ifndef USE_DISPLAY
-  #define USE_DISPLAY true
-#endif
-#ifndef USE_LORA
-  #define USE_LORA false
-#endif
-#ifndef USE_LORA_EXT
-  #define USE_LORA_EXT true
-#endif
-#ifndef USE_BATTERY
-  #define USE_BATTERY false
-#endif
-#ifndef USE_ENCRYPTION
-  #define USE_ENCRYPTION false
-#endif
-#ifndef USE_DEEP_SLEEP
-  #define USE_DEEP_SLEEP false
-#endif
-#ifndef USE_SPIFFS
-  #define USE_SPIFFS false
-#endif
-#ifndef USE_WIFI
-  #define USE_WIFI false
-#endif
-#ifndef USE_BLUETOOTH
-  #define USE_BLUETOOTH false
-#endif
-#ifndef USE_SERIAL
-  #define USE_SERIAL true
-#endif
-#ifndef USE_SERIAL_2
-  #define USE_SERIAL_2 true
-#endif
-#ifndef RECEIVE_COMMANDS
-  #define RECEIVE_COMMANDS true
-#endif
-
-// Dispositivos internos
-constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoramento da bateria
-constexpr uint8_t LED_PIN = 35;                // Pino do LED embutido (GPIO 35)
-constexpr uint8_t PINO_VEXT = 36;              // Pino para ligar o circuito Vext
-constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
-#if USE_DISPLAY
-  #define OLED_SDA 17
-  #define OLED_SCL 18
-  #define OLED_RESET 21                          // 21 ou -1 para Reset por software
-  // Cada caractere no display ocupa 6x8 pixels, então 128/6 = 21 caracteres por linha, 64/8 = 8 linhas
-  constexpr uint8_t SCREEN_WIDTH = 128;                  // Largura do OLED
-  constexpr uint8_t SCREEN_HEIGHT = 64;                  // Altura do OLED
-#endif
-#if (USE_LORA)
-  #define LORA_NSS 8
-  #define LORA_DIO1 14
-  #define LORA_RST 12
-  #define LORA_BUSY 13
-  #define LORA_SCK 9
-  #define LORA_MISO 11
-  #define LORA_MOSI 10
-#endif
-#if USE_SERIAL_2
-  #define SERIAL2_RX_PIN 41                     // Pino RX da Serial2
-  #define SERIAL2_TX_PIN 42                     // Pino TX da Serial2
-#endif
-#if USE_LORA_EXT
-  #define LORA_ADDRH 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
-  #define LORA_ADDRL 0xFF   // Endereço do dispositivo (0x00 a 0xFF) - 0xFF = qualquer (broadcast)
-  #define LORA_CHANNEL 0x41 // Canal (0x00 a 0x50 - 0-80 = 81 canais)
-  //#define POWER_30 3        // https://github.com/xreef/EByte_LoRa_E220_Series_Library/tree/master?tab=readme-ov-file
-  #define LORA_EXT_AUX 38
-  #define LORA_EXT_M0 39
-  #define LORA_EXT_M1 40
-#endif
 extern Configuration configE220std; // Configuração padrão do LoRa Externo
 
 
-// === Variáveis e Constantes Globais ===
-// Identificação:
-constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
-constexpr const char* DISPOSITIVO = "aabeck-01";
-constexpr const char* TIPO_DISPOSITIVO = "ESP32V3";
-constexpr const char* VERSAO_FIRMWARE = "0.0.3-alpha"; // Versão do firmware
 constexpr const char* ssid = WIFI_SSID;
 constexpr const char* password = WIFI_PASSWORD;
-
-constexpr size_t JSON_DOC_SIZE = 512;                  // Tamanho alocado
-constexpr size_t JSON_USAGE_WARNING_PERCENT = 85;      // Percentual de uso que aciona o alerta
-constexpr size_t TEMPO_ENVIO = 11;                     // Tempo de envio em minutos
-constexpr uint8_t XOR_KEY = 0x5A;                      // Chave de encriptação XOR simples
-constexpr uint32_t BAUD_RATE = 9600;                   // Taxa de transmissão da Serial
-constexpr uint16_t SERIAL_TIMEOUT_MS = 5000;           // Timeout da Serial em milissegundos
-
-
-// GPIO
-constexpr uint8_t PINO_BOTAO_SAIR_SEGURO = 33;
-// Um ADC (Conversor Analógico-Digital) de 12 bits gera valores de 0 a 4095 (2¹² - 1).
-// Portanto, se sua tensão de referência for 3.3V, o valor 4095 representa 3.3V, e 0 representa 0V.
-// Cada unidade no valor representa cerca de 0.0008V (3.3V ÷ 4096).
-constexpr uint8_t ANALOG_RESOLUTION = 12;
-// Pinos ADC: GPIO 2, 3, 4, 5, 6, 7, 19, 20
-// Pinos somente digitais: GPIO 26, 33, 34, 38, 39, 40, 41, 42, 45, 46, 47, 48
-constexpr int pinosEntrada[] = {2, 3, 4, 5, 6, 7};
-constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
-
-// Configuração do LoRa - Os valores aqui precisam estar de acordo com o módulo utilizado
-// e com as regulamentações locais de frequência e potência.
-// Além de isso, os parâmetros de modulação (SF, BW, CR) devem ser ajustados conforme a aplicação,
-// considerando o trade-off entre alcance, taxa de dados e robustez da comunicação.
-// Ainda precisam estar iguais nos dispositivos que irão se comunicar.
-constexpr float freqLoRa = 915.125;    // Frequência em MHz - Banda ISM para América do Sul - 915 a 928 MHz
-constexpr int txPower = 17;            // Potência de transmissão (em dBm) — limite ANATEL é 20 dBm. As opções comuns são 2 a 17 dBm.
-constexpr int8_t sfLoRa = 11;          // Fator de espalhamento (7 a 12) - Quanto maior, mais alcance / menor taxa
-constexpr float bwLoRa = 125.0;        // Largura de banda (em kHz) - Quanto maior, maior taxa / menor alcance. As opções comuns são 125.0, 250.0, 500.0
-constexpr uint8_t crLoRa = 5;          // Taxa de codificação (5 a 8) - 5 equivale a 4/5. (Mais confiável = menor velocidade)
-constexpr uint16_t plLoRa = 8;         // Comprimento do preâmbulo (símbolos) - Quanto maior, mais confiável / menor velocidade. As opções são 6, 8, 10, 12, 14, 16, 18, 20
-constexpr uint16_t swLoRa = 0x12;      // Palavra de sincronização - 0x34 para LoRaWAN público | 0x12 para LoRa privado
-constexpr uint8_t crcLoRa = 0;         // HDesabilitar verificação de CRC
-
-// Configuração do Deep Sleep
-constexpr uint32_t DEEP_SLEEP_TIMEOUT_MS = 60000; // Timeout do Deep Sleep em milissegundos (1 minuto)
-
-// Configuração do watchdog
-constexpr uint32_t WDT_TIMEOUT_MS = 60000;             // Timeout do watchdog em milissegundos (1 minuto)
-// Configuração do SPIFFS
-constexpr const char* SPIFFS_MOUNT_POINT = "/spiffs";  // Ponto de montagem do SPIFFS
-// Configuração do Wi-Fi
-constexpr wifi_mode_t WIFI_MODE = WIFI_AP;             // Modo Wi-Fi: WIFI_STA (cliente), WIFI_AP (ponto de acesso) ou WIFI_AP_STA (ambos)
-constexpr uint32_t INTERVALO_RECONEXAO_WIFI = 180000;  // Intervalo de reconexão Wi-Fi em milissegundos
-constexpr uint16_t WIFI_TIMEOUT = 10000;               // Timeout do Wi-Fi em milissegundos
 
 // Atribui valor persistente mesmo após deep sleep (mantido na RAM RTC)
 extern RTC_DATA_ATTR SystemContext systemContext;
@@ -225,6 +98,7 @@ void verificarUsoRAM();
 void verificarUsoJson(const StaticJsonDocument<JSON_DOC_SIZE> &doc);
 float getInternalTemperature(const String &unidade = "celsius");
 void processarComando(const String &cmd);
+StatusCode registrarComando(const char* name, CommandHandler handler);
 void receberComandoLoRa();
 void aguardar(const uint8_t tempo);
 String xorEncrypt(const String &input, const char key);
