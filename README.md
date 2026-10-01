@@ -114,6 +114,15 @@ pio run -e production -t upload
 pio device monitor -b 9600
 ```
 
+### Ambiente de depuracao
+
+Usa o fluxo normal com `TEST_MODE=0` e `DEBUG_MODE=1`:
+
+```powershell
+pio run -e debug
+pio run -e debug -t upload
+```
+
 ### Perfil sem recursos opcionais
 
 Valida que o firmware continua compilando com display, SX1262, E220 e Serial2 desativados:
@@ -155,6 +164,31 @@ As opcoes podem ser alteradas em `include/main.h` ou sobrescritas por `build_fla
 - `DEBUG_MODE`: mensagens adicionais de diagnostico.
 
 O XOR existente e apenas ofuscacao e nao deve ser tratado como protecao criptografica. Para dados sensiveis, e necessario definir um protocolo compativel com a Central usando criptografia autenticada.
+
+## Formato da telemetria
+
+O payload continua em JSON. A identificacao do dispositivo, temperatura e bateria permanecem no nivel raiz. As leituras de umidade agora sao objetos identificados:
+
+```json
+{
+  "dispositivo": "aabeck-01",
+  "tipo": "ESP32V3",
+  "versao": "0.0.3-alpha",
+  "protocolo_telemetria": 1,
+  "timestamp": 123456,
+  "temperatura": 28,
+  "temperatura_unidade": "celsius",
+  "temperatura_estado": "ok",
+  "bateria": null,
+  "bateria_unidade": "volt",
+  "bateria_estado": "indisponivel",
+  "umidade": [
+    {"id": "solo_1", "tipo": "umidade_solo", "estado": "ok", "valor_raw": 2048, "valor_calibrado": 2048, "unidade": "adc", "calibracao": "identidade"}
+  ]
+}
+```
+
+O intervalo de envio e configurado por `TEMPO_ENVIO` em `AppConfig.h`; as mensagens de status usam esse mesmo valor.
 
 ## Execucao da Central
 

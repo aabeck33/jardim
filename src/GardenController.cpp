@@ -143,16 +143,23 @@ void GardenController::update() {
     }
 
     #if (USE_DEEP_SLEEP)
-      dispmsg("DeepSleep por 10 min.");
+      char mensagemDeepSleep[32];
+      snprintf(mensagemDeepSleep, sizeof(mensagemDeepSleep), "DeepSleep por %u min.", TEMPO_ENVIO);
+      dispmsg(mensagemDeepSleep);
       #if (USE_SPIFFS && DEBUG_MODE)
-        logToSPIFFS("Entrando em modo de sono profundo por 10 minutos...");
+        char mensagemLogDeepSleep[64];
+        snprintf(mensagemLogDeepSleep, sizeof(mensagemLogDeepSleep),
+          "Entrando em modo de sono profundo por %u minutos...", TEMPO_ENVIO);
+        logToSPIFFS(mensagemLogDeepSleep);
       #endif
-      esp_sleep_enable_timer_wakeup(TEMPO_ENVIO * 60000000);
+      esp_sleep_enable_timer_wakeup(INTERVALO_ENVIO_US);
       esp_deep_sleep_start();
     #else
-      Serial.println("Aguardando 10 minutos antes do próximo envio...");
+      Serial.printf("Aguardando %u minutos antes do próximo envio...\n", TEMPO_ENVIO);
       #if (USE_DISPLAY)
-        dispmsg("Aguardando 10 min.", 0);
+        char mensagemEspera[32];
+        snprintf(mensagemEspera, sizeof(mensagemEspera), "Aguardando %u min.", TEMPO_ENVIO);
+        dispmsg(mensagemEspera, 0);
         dispmsg("antes do próx. envio.", 1);
         display_.power(false);
       #endif

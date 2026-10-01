@@ -145,12 +145,18 @@ void verificarUsoRAM() {
   Serial.printf("[RAM] RAM externa livre: %u bytes\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   Serial.printf("[RAM] Total RAM livre: %u bytes\n", heapLivre + heapInterno + heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   
-  dispmsg("RAM livre: " + String(heapLivre) + " bytes");
+  char mensagemRam[48];
+  snprintf(mensagemRam, sizeof(mensagemRam), "RAM livre: %u bytes", heapLivre);
+  dispmsg(mensagemRam);
 
   #if (USE_SPIFFS && DEBUG_MODE)
-    logToSPIFFS("Heap livre: " + String(heapLivre) + " bytes");
-    logToSPIFFS("RAM interna livre: " + String(heapInterno) + " bytes");
-    logToSPIFFS("RAM externa livre: " + String(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)) + " bytes");
+    char mensagemLog[64];
+    snprintf(mensagemLog, sizeof(mensagemLog), "Heap livre: %u bytes", heapLivre);
+    logToSPIFFS(mensagemLog);
+    snprintf(mensagemLog, sizeof(mensagemLog), "RAM interna livre: %u bytes", heapInterno);
+    logToSPIFFS(mensagemLog);
+    snprintf(mensagemLog, sizeof(mensagemLog), "RAM externa livre: %u bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+    logToSPIFFS(mensagemLog);
   #endif
 
   if (heapLivre < 10000) { // Se menos de 10KB livre
@@ -303,9 +309,11 @@ void aguardar(const uint8_t tempo) {
   unsigned long interval = 1000;    // 1 segundo
   unsigned long elapsed = 0;
 
-  dispmsg("Aguardando " + String(tempo) + " minutos...");
+  char mensagemEspera[48];
+  snprintf(mensagemEspera, sizeof(mensagemEspera), "Aguardando %u minutos...", tempo);
+  dispmsg(mensagemEspera);
 
-  while (elapsed < tempo * 60000) {
+  while (elapsed < static_cast<uint32_t>(tempo) * 60000UL) {
     esp_task_wdt_reset(); // Alimenta o watchdog
     delay(interval);
     elapsed += interval;
@@ -358,26 +366,42 @@ String coletarDados() {
   dados["dispositivo"] = DISPOSITIVO;
   dados["tipo"] = TIPO_DISPOSITIVO;
   dados["versao"] = VERSAO_FIRMWARE; 
+  dados["protocolo_telemetria"] = PROTOCOLO_TELEMETRIA;
   unsigned long timestamp = millis();
   dados["timestamp"] = timestamp;  // Tempo desde o boot (ms)
 
   // Ler temperatura interna do ESP32
   float temperatura = getInternalTemperature();
   dados["temperatura"] = temperatura;
+  dados["temperatura_unidade"] = "celsius";
+  dados["temperatura_estado"] = "ok";
 
   // Ler a tensão da bateria
   #if (USE_BATTERY)
     dados["bateria"] = readBatteryVoltage();
+    dados["bateria_unidade"] = "volt";
+    dados["bateria_estado"] = "ok";
   #else
     dados["bateria"] = nullptr;
+    dados["bateria_unidade"] = "volt";
+    dados["bateria_estado"] = "indisponivel";
   #endif
 
   // Criar o array para os valores de umidade
   JsonArray umidade = dados.createNestedArray("umidade");
   // Ler sensores de umidade do solo
-  for (int i = 0; i < numEntradas; i++) {
+  for (size_t i = 0; i < numEntradas; i++) {
     int leitura = analogRead(pinosEntrada[i]);  // 0 (úmido) a 4095 (seco)
-    umidade.add(leitura);
+    JsonObject sensor = umidade.createNestedObject();
+    char sensorId[16];
+    snprintf(sensorId, sizeof(sensorId), "solo_%u", static_cast<unsigned>(i + 1));
+    sensor["id"] = sensorId;
+    sensor["tipo"] = "umidade_solo";
+    sensor["estado"] = "ok";
+    sensor["valor_raw"] = leitura;
+    sensor["valor_calibrado"] = leitura;
+    sensor["unidade"] = "adc";
+    sensor["calibracao"] = "identidade";
   }
 
   dispmsg("Dados coletados.");
@@ -387,6 +411,7 @@ String coletarDados() {
 
   // Serializa para string
   String payload;
+  payload.reserve(JSON_DOC_SIZE);
   serializeJson(dados, payload);
   return payload;
 }

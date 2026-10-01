@@ -142,7 +142,17 @@ void test_getInternalTemperature() {
 
 void test_processarComando() {
     processarComando("status");
-    TEST_ASSERT_TRUE(true);
+    TEST_ASSERT_EQUAL(StatusCode::UnknownCommand, systemContext.lastCommandStatus);
+}
+
+StatusCode testPingCommand(const String& arguments) {
+    return arguments.length() == 0 ? StatusCode::Ok : StatusCode::InvalidArgument;
+}
+
+void test_commandRegistration() {
+    TEST_ASSERT_EQUAL(StatusCode::Ok, registrarComando("PING", testPingCommand));
+    processarComando("PING");
+    TEST_ASSERT_EQUAL(StatusCode::Ok, systemContext.lastCommandStatus);
 }
 
 void test_receberComandoLoRa() {
@@ -164,6 +174,17 @@ void test_xorEncrypt() {
 void test_coletarDados() {
     String dados = coletarDados();
     TEST_ASSERT_GREATER_THAN(0, dados.length());
+
+    StaticJsonDocument<JSON_DOC_SIZE> documento;
+    const bool jsonValido = !deserializeJson(documento, dados);
+    TEST_ASSERT_TRUE(jsonValido);
+    TEST_ASSERT_EQUAL(PROTOCOLO_TELEMETRIA, documento["protocolo_telemetria"] | 0);
+    JsonArray sensores = documento["umidade"].as<JsonArray>();
+    TEST_ASSERT_EQUAL(numEntradas, sensores.size());
+    TEST_ASSERT_EQUAL_STRING("solo_1", sensores[0]["id"] | "");
+    TEST_ASSERT_EQUAL_STRING("ok", sensores[0]["estado"] | "");
+    TEST_ASSERT_TRUE(sensores[0]["valor_raw"].is<int>());
+    TEST_ASSERT_TRUE(sensores[0]["valor_calibrado"].is<int>());
 }
 
 void test_logToSPIFFS() {
@@ -203,6 +224,7 @@ void setup() {
     RUN_TEST(test_verificarUsoJson);
     RUN_TEST(test_getInternalTemperature);
     RUN_TEST(test_processarComando);
+    RUN_TEST(test_commandRegistration);
     RUN_TEST(test_receberComandoLoRa);
     RUN_TEST(test_aguardar);
     RUN_TEST(test_xorEncrypt);
