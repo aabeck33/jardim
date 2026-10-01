@@ -1,7 +1,8 @@
 #include <sensors/BatterySensor.h>
 
-BatterySensor::BatterySensor(const char* id, uint8_t pin, bool enabled)
-    : id_(id), pin_(pin), enabled_(enabled) {}
+BatterySensor::BatterySensor(const char* id, uint8_t pin, bool enabled,
+               uint16_t emptyRaw, uint16_t fullRaw)
+  : id_(id), pin_(pin), enabled_(enabled), emptyRaw_(emptyRaw), fullRaw_(fullRaw) {}
 
 bool BatterySensor::begin() {
   if (enabled_) {
@@ -17,7 +18,10 @@ bool BatterySensor::read() {
     return false;
   }
   rawValue_ = analogRead(pin_);
-  voltage_ = (rawValue_ / 4095.0f) * 3.3f * 2.0f;
+  const float normalized = fullRaw_ == emptyRaw_
+      ? 0.0f
+      : (rawValue_ - emptyRaw_) / static_cast<float>(fullRaw_ - emptyRaw_);
+  voltage_ = normalized * 3.3f * 2.0f;
   valid_ = true;
   return true;
 }

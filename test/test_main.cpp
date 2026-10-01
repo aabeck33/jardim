@@ -179,13 +179,14 @@ void test_coletarDados() {
     const bool jsonValido = !deserializeJson(documento, dados);
     TEST_ASSERT_TRUE(jsonValido);
     TEST_ASSERT_EQUAL(PROTOCOLO_TELEMETRIA, documento["protocolo_telemetria"] | 0);
-    JsonArray sensores = documento["umidade"].as<JsonArray>();
-    TEST_ASSERT_EQUAL(numEntradas, sensores.size());
+    JsonArray sensores = documento["sensores"].as<JsonArray>();
+    TEST_ASSERT_EQUAL(8, sensores.size());
     TEST_ASSERT_EQUAL_STRING("solo_1", sensores[0]["id"] | "");
     TEST_ASSERT_EQUAL_STRING("ok", sensores[0]["estado"] | "");
     TEST_ASSERT_TRUE(sensores[0]["valor_raw"].is<int>());
     TEST_ASSERT_TRUE(sensores[0]["valor_calibrado"].is<float>());
-    TEST_ASSERT_TRUE(documento["sensores"].as<JsonArray>().size() >= numEntradas);
+    TEST_ASSERT_EQUAL_STRING("temperatura_interna", sensores[6]["id"] | "");
+    TEST_ASSERT_EQUAL_STRING("bateria", sensores[7]["id"] | "");
 }
 
 void test_logToSPIFFS() {

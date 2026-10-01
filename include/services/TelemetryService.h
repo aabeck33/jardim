@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <sensors/BatterySensor.h>
 #include <sensors/InternalTemperatureSensor.h>
+#include <sensors/SensorConfig.h>
 #include <sensors/SensorRegistry.h>
 #include <sensors/SoilMoistureSensor.h>
 

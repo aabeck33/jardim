@@ -13,6 +13,8 @@ include/
   AppConfig.h     Flags e parametros da aplicacao
   BoardPins.h     Pinos, radio e parametros especificos da placa
   StatusCode.h    Resultados padronizados de operacoes
+  sensors/SensorConfig.h
+                  Lista explicita de sensores, tipos, pinos e calibracao
   GardenController.h
                   Orquestracao do ciclo de vida da aplicacao
   SystemContext.h Estado operacional compartilhado entre modulos
@@ -171,7 +173,7 @@ O XOR existente e apenas ofuscacao e nao deve ser tratado como protecao criptogr
 
 ## Formato da telemetria
 
-O payload continua em JSON. A identificacao do dispositivo, temperatura e bateria permanecem no nivel raiz. As leituras de umidade agora sao objetos identificados:
+O payload usa um unico array `sensores`. Cada sensor configurado possui nome, tipo, estado, valor bruto, valor calibrado, unidade e calibracao:
 
 ```json
 {
@@ -180,14 +182,10 @@ O payload continua em JSON. A identificacao do dispositivo, temperatura e bateri
   "versao": "0.0.3-alpha",
   "protocolo_telemetria": 1,
   "timestamp": 123456,
-  "temperatura": 28,
-  "temperatura_unidade": "celsius",
-  "temperatura_estado": "ok",
-  "bateria": null,
-  "bateria_unidade": "volt",
-  "bateria_estado": "indisponivel",
-  "umidade": [
-    {"id": "solo_1", "tipo": "umidade_solo", "estado": "ok", "valor_raw": 2048, "valor_calibrado": 2048, "unidade": "adc", "calibracao": "identidade"}
+  "sensores": [
+    {"id": "solo_1", "tipo": "umidade_solo", "estado": "ok", "valor_raw": 2048, "valor_calibrado": 50.0, "unidade": "percent", "calibracao": "linear_wet_dry"},
+    {"id": "temperatura_interna", "tipo": "temperatura_interna", "estado": "ok", "valor_raw": 28, "valor_calibrado": 28.0, "unidade": "celsius", "calibracao": "native"},
+    {"id": "bateria", "tipo": "bateria", "estado": "indisponivel", "valor_raw": 0, "valor_calibrado": 0.0, "unidade": "volt", "calibracao": "divider_2_to_1"}
   ]
 }
 ```

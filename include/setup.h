@@ -167,11 +167,6 @@ void iniciarPinos() {
     Serial.println("SPI iniciado para LoRa.");
   #endif
 
-  // Pinos de entrada
-  for (int i = 0; i < numEntradas; i++) {
-    pinMode(pinosEntrada[i], INPUT);
-  }
-
   // Pinos individuais:
   pinMode(VBAT_READ, INPUT);                      // Pino da bateria
   pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP);  // Pino do botão de sair do modo seguro

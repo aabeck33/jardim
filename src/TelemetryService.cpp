@@ -3,22 +3,30 @@
 #include <utils.h>
 
 TelemetryService::TelemetryService()
-    : soil1_("solo_1", pinosEntrada[0]),
-      soil2_("solo_2", pinosEntrada[1]),
-      soil3_("solo_3", pinosEntrada[2]),
-      soil4_("solo_4", pinosEntrada[3]),
-      soil5_("solo_5", pinosEntrada[4]),
-      soil6_("solo_6", pinosEntrada[5]),
-      battery_("bateria", VBAT_READ, USE_BATTERY) {}
+    : soil1_(SENSOR_CONFIG[0].id, SENSOR_CONFIG[0].pin,
+        SENSOR_CONFIG[0].firstCalibrationPoint, SENSOR_CONFIG[0].secondCalibrationPoint),
+      soil2_(SENSOR_CONFIG[1].id, SENSOR_CONFIG[1].pin,
+        SENSOR_CONFIG[1].firstCalibrationPoint, SENSOR_CONFIG[1].secondCalibrationPoint),
+      soil3_(SENSOR_CONFIG[2].id, SENSOR_CONFIG[2].pin,
+        SENSOR_CONFIG[2].firstCalibrationPoint, SENSOR_CONFIG[2].secondCalibrationPoint),
+      soil4_(SENSOR_CONFIG[3].id, SENSOR_CONFIG[3].pin,
+        SENSOR_CONFIG[3].firstCalibrationPoint, SENSOR_CONFIG[3].secondCalibrationPoint),
+      soil5_(SENSOR_CONFIG[4].id, SENSOR_CONFIG[4].pin,
+        SENSOR_CONFIG[4].firstCalibrationPoint, SENSOR_CONFIG[4].secondCalibrationPoint),
+      soil6_(SENSOR_CONFIG[5].id, SENSOR_CONFIG[5].pin,
+        SENSOR_CONFIG[5].firstCalibrationPoint, SENSOR_CONFIG[5].secondCalibrationPoint),
+      battery_(SENSOR_CONFIG[7].id, SENSOR_CONFIG[7].pin, SENSOR_CONFIG[7].enabled,
+     SENSOR_CONFIG[7].firstCalibrationPoint, SENSOR_CONFIG[7].secondCalibrationPoint) {}
 
 bool TelemetryService::begin() {
-  registry_.add(soil1_);
-  registry_.add(soil2_);
-  registry_.add(soil3_);
-  registry_.add(soil4_);
-  registry_.add(soil5_);
-  registry_.add(soil6_);
-  registry_.add(temperature_);
+  if (SENSOR_CONFIG[0].enabled) registry_.add(soil1_);
+  if (SENSOR_CONFIG[1].enabled) registry_.add(soil2_);
+  if (SENSOR_CONFIG[2].enabled) registry_.add(soil3_);
+  if (SENSOR_CONFIG[3].enabled) registry_.add(soil4_);
+  if (SENSOR_CONFIG[4].enabled) registry_.add(soil5_);
+  if (SENSOR_CONFIG[5].enabled) registry_.add(soil6_);
+  if (SENSOR_CONFIG[6].enabled) registry_.add(temperature_);
+  registry_.add(battery_);
   registry_.add(battery_);
   initialized_ = registry_.beginAll();
   return initialized_;
@@ -37,25 +45,8 @@ String TelemetryService::collect() {
   data["protocolo_telemetria"] = PROTOCOLO_TELEMETRIA;
   data["timestamp"] = millis();
 
-  const SensorReading temperature = temperature_.reading();
-  data["temperatura"] = temperature.calibratedValue;
-  data["temperatura_unidade"] = temperature.unit;
-  data["temperatura_estado"] = temperature.state;
-
-  const SensorReading battery = battery_.reading();
-  if (battery.valid) {
-    data["bateria"] = battery.calibratedValue;
-  } else {
-    data["bateria"] = nullptr;
-  }
-  data["bateria_unidade"] = battery.unit;
-  data["bateria_estado"] = battery.state;
-
   JsonArray sensors = data.createNestedArray("sensores");
   registry_.appendTo(sensors);
-
-  JsonArray soil = data.createNestedArray("umidade");
-  registry_.appendTo(soil, "umidade_solo");
 
   dispmsg("Dados coletados.");
   verificarUsoJson(data);

@@ -1,6 +1,8 @@
 #ifndef JARDIM_APP_CONFIG_H
 #define JARDIM_APP_CONFIG_H
 
+#include <WiFi.h>
+
 #ifndef DEBUG_MODE
   #define DEBUG_MODE true
 #endif
