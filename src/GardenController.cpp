@@ -57,6 +57,11 @@ void GardenController::begin() {
     setupSPIFFS();
   #endif
 
+  if (!telemetry_.begin()) {
+    systemContext.lastInitStatus = StatusCode::HardwareFailure;
+  }
+  actuators_.beginAll();
+
   #if (USE_LORA)
     setupLoRa();
   #else
@@ -87,6 +92,7 @@ void GardenController::begin() {
 
 void GardenController::update() {
   esp_task_wdt_reset();
+  actuators_.update(millis());
 
   #if (!TEST_MODE)
     if (systemContext.safeMode) {

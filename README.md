@@ -18,6 +18,8 @@ include/
   SystemContext.h Estado operacional compartilhado entre modulos
   interfaces/     Contratos ISensor, IActuator e ITransport
   services/       Fronteiras de display, telemetria e comunicacao
+  sensors/        Leituras e calibracao de sensores
+  actuators/      Bombas e gerenciamento de atuadores
 
 src/
   main.cpp        Ponto de entrada: setup() e loop()
@@ -46,6 +48,8 @@ platformio.ini    Ambientes, placa, bibliotecas e flags de compilacao
 ```
 
 Os arquivos `.h` ficam em `include/` porque sao a interface publica do firmware. As implementacoes ficam em `src/` e sao compiladas uma unica vez. O `GardenController` coordena o fluxo, enquanto os servicos isolam display, telemetria e comunicacao. Os contratos de sensores, atuadores e transportes permitem adicionar implementacoes sem acoplar a aplicacao a um dispositivo concreto.
+
+O `SensorRegistry` registra seis sensores de solo, a temperatura interna e a bateria. As classes `AirHumiditySensor` e `ReservoirLevelSensor` ja estao preparadas para drivers e pinos especificos, mas nao sao ativadas automaticamente sem hardware configurado.
 
 As configuracoes estao separadas por responsabilidade: `AppConfig.h` contem opcoes e parametros da aplicacao, `BoardPins.h` contem o mapa da placa e `secrets.h` contem apenas credenciais locais.
 
@@ -189,6 +193,10 @@ O payload continua em JSON. A identificacao do dispositivo, temperatura e bateri
 ```
 
 O intervalo de envio e configurado por `TEMPO_ENVIO` em `AppConfig.h`; as mensagens de status usam esse mesmo valor.
+
+## Atuadores
+
+`Pump` e `ActuatorManager` fornecem a camada segura para futuras bombas: o GPIO e desligado no boot, existe tempo maximo ligado, cooldown entre partidas, desligamento automatico por timeout e parada de emergencia. Nenhuma bomba e registrada por padrao; um pino e uma politica de seguranca devem ser definidos antes da ativacao fisica.
 
 ## Execucao da Central
 

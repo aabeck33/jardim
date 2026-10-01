@@ -1,0 +1,52 @@
+#include <sensors/BatterySensor.h>
+
+BatterySensor::BatterySensor(const char* id, uint8_t pin, bool enabled)
+    : id_(id), pin_(pin), enabled_(enabled) {}
+
+bool BatterySensor::begin() {
+  if (enabled_) {
+    pinMode(pin_, INPUT);
+  }
+  valid_ = false;
+  return true;
+}
+
+bool BatterySensor::read() {
+  if (!enabled_) {
+    valid_ = false;
+    return false;
+  }
+  rawValue_ = analogRead(pin_);
+  voltage_ = (rawValue_ / 4095.0f) * 3.3f * 2.0f;
+  valid_ = true;
+  return true;
+}
+
+SensorReading BatterySensor::reading() const {
+  SensorReading value;
+  value.id = id_;
+  value.type = "bateria";
+  value.state = !enabled_ ? "indisponivel" : (valid_ ? "ok" : "read_error");
+  value.unit = "volt";
+  value.calibration = "divider_2_to_1";
+  value.rawValue = rawValue_;
+  value.calibratedValue = voltage_;
+  value.valid = valid_;
+  return value;
+}
+
+void BatterySensor::appendTo(JsonArray output) const {
+  JsonObject sensor = output.createNestedObject();
+  const SensorReading value = reading();
+  sensor["id"] = value.id;
+  sensor["tipo"] = value.type;
+  sensor["estado"] = value.state;
+  sensor["valor_raw"] = value.rawValue;
+  sensor["valor_calibrado"] = value.calibratedValue;
+  sensor["unidade"] = value.unit;
+  sensor["calibracao"] = value.calibration;
+}
+
+const char* BatterySensor::id() const {
+  return id_;
+}

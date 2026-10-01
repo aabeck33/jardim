@@ -184,7 +184,8 @@ void test_coletarDados() {
     TEST_ASSERT_EQUAL_STRING("solo_1", sensores[0]["id"] | "");
     TEST_ASSERT_EQUAL_STRING("ok", sensores[0]["estado"] | "");
     TEST_ASSERT_TRUE(sensores[0]["valor_raw"].is<int>());
-    TEST_ASSERT_TRUE(sensores[0]["valor_calibrado"].is<int>());
+    TEST_ASSERT_TRUE(sensores[0]["valor_calibrado"].is<float>());
+    TEST_ASSERT_TRUE(documento["sensores"].as<JsonArray>().size() >= numEntradas);
 }
 
 void test_logToSPIFFS() {

@@ -6,6 +6,7 @@
  */
 #include <main.h>
 #include <services/CommandProcessor.h>
+#include <services/TelemetryService.h>
 
 #ifdef JARDIM_UTILS_IMPLEMENTATION
 
@@ -359,61 +360,8 @@ String xorDecrypt(const String &input, const char key) {
  * @return [String] JSON com os dados serializados.
  */
 String coletarDados() {
-  // Criação do JSON
-  StaticJsonDocument<JSON_DOC_SIZE> dados;
-
-  // Identificação e timestamp
-  dados["dispositivo"] = DISPOSITIVO;
-  dados["tipo"] = TIPO_DISPOSITIVO;
-  dados["versao"] = VERSAO_FIRMWARE; 
-  dados["protocolo_telemetria"] = PROTOCOLO_TELEMETRIA;
-  unsigned long timestamp = millis();
-  dados["timestamp"] = timestamp;  // Tempo desde o boot (ms)
-
-  // Ler temperatura interna do ESP32
-  float temperatura = getInternalTemperature();
-  dados["temperatura"] = temperatura;
-  dados["temperatura_unidade"] = "celsius";
-  dados["temperatura_estado"] = "ok";
-
-  // Ler a tensão da bateria
-  #if (USE_BATTERY)
-    dados["bateria"] = readBatteryVoltage();
-    dados["bateria_unidade"] = "volt";
-    dados["bateria_estado"] = "ok";
-  #else
-    dados["bateria"] = nullptr;
-    dados["bateria_unidade"] = "volt";
-    dados["bateria_estado"] = "indisponivel";
-  #endif
-
-  // Criar o array para os valores de umidade
-  JsonArray umidade = dados.createNestedArray("umidade");
-  // Ler sensores de umidade do solo
-  for (size_t i = 0; i < numEntradas; i++) {
-    int leitura = analogRead(pinosEntrada[i]);  // 0 (úmido) a 4095 (seco)
-    JsonObject sensor = umidade.createNestedObject();
-    char sensorId[16];
-    snprintf(sensorId, sizeof(sensorId), "solo_%u", static_cast<unsigned>(i + 1));
-    sensor["id"] = sensorId;
-    sensor["tipo"] = "umidade_solo";
-    sensor["estado"] = "ok";
-    sensor["valor_raw"] = leitura;
-    sensor["valor_calibrado"] = leitura;
-    sensor["unidade"] = "adc";
-    sensor["calibracao"] = "identidade";
-  }
-
-  dispmsg("Dados coletados.");
-
-  // Verifica uso de memória do JSON
-  verificarUsoJson(dados);
-
-  // Serializa para string
-  String payload;
-  payload.reserve(JSON_DOC_SIZE);
-  serializeJson(dados, payload);
-  return payload;
+  static TelemetryService telemetry;
+  return telemetry.collect();
 }
 
 
