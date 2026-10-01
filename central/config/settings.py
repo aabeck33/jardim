@@ -6,7 +6,26 @@
 # Versão: 2.0 (Arquitetura Modular)
 ###########################################################################
 
+from pathlib import Path
+
+from dotenv import dotenv_values
+
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+ENV_VALUES = dotenv_values(ENV_FILE)
+
 DEBUG_MODE = True  # Modo de debug (True/False)
+
+# Valores: teste (simulado), teste_radio (E220 real sem bomba) ou producao.
+CENTRAL_MODE = (ENV_VALUES.get("CENTRAL_AMBIENTE") or "teste").strip().lower()
+if CENTRAL_MODE not in {"teste", "teste_radio", "producao"}:
+	raise ValueError(
+		"CENTRAL_AMBIENTE deve ser 'teste', 'teste_radio' ou 'producao'."
+	)
+TEST_MESSAGE_INTERVAL = 5
+
+STORMGLASS_API_KEY = (ENV_VALUES.get("STORMGLASS_API_KEY") or "").strip()
+if CENTRAL_MODE == "producao" and not STORMGLASS_API_KEY:
+	raise ValueError("Defina STORMGLASS_API_KEY em central/.env para produção.")
 
 # Pinos de controle do E220
 PIN_M0 = 17  # GPIO17 (pino físico 11)
@@ -17,7 +36,6 @@ PIN_AUX = 25  # GPIO25 (pino físico 7)
 PIN_BOMBA = 18  # GPIO18 (pino físico 12)
 
 # API de clima (Stormglass)
-STORMGLASS_API_KEY = "7fe1931e-839f-11f0-b41a-0242ac130006-7fe193a0-839f-11f0-b41a-0242ac130006"
 LATITUDE = -22.94348412102589
 LONGITUDE = -47.03536345569916
 STORMGLASS_URL = "https://api.stormglass.io/v2/weather/point"

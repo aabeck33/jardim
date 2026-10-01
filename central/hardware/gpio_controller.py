@@ -25,24 +25,29 @@ except (ImportError, RuntimeError):
     GPIO = DummyGPIO()
 
 
-def init_gpio():
-    """Inicializa os pinos GPIO do Raspberry Pi."""
+def init_lora_gpio():
+    """Inicializa somente os pinos de controle do rádio LoRa E220."""
 
     if cfg.DEBUG_MODE:
         if GPIO_AVAILABLE:
-            print("[GPIO] Configurando pinos GPIO...")
+            print("[GPIO] Configurando pinos do rádio LoRa...")
         else:
             print("[GPIO Simulação] Modo simulado.")
 
     GPIO.setmode(GPIO.BCM)
-
-    # LoRa E220
     GPIO.setup(cfg.PIN_M0, GPIO.OUT)
     GPIO.setup(cfg.PIN_M1, GPIO.OUT)
     GPIO.setup(cfg.PIN_AUX, GPIO.IN)
-
     GPIO.output(cfg.PIN_M0, GPIO.LOW)
     GPIO.output(cfg.PIN_M1, GPIO.LOW)
+
+
+def init_gpio():
+    """Inicializa os pinos GPIO do rádio e da bomba no Raspberry Pi."""
+    init_lora_gpio()
+
+    if cfg.DEBUG_MODE and GPIO_AVAILABLE:
+        print("[GPIO] Configurando pino da bomba...")
 
     # Bomba
     GPIO.setup(cfg.PIN_BOMBA, GPIO.OUT)

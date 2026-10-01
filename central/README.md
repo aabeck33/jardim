@@ -139,6 +139,46 @@ O módulo `utils/logger.py` gera logs formatados gravados simultaneamente no con
 
 ## 🏃 Como Executar
 
+### Modo de recepção
+
+A central lê `central/.env` automaticamente; esse arquivo é a única fonte para
+`CENTRAL_AMBIENTE`. Para mudar o modo, edite essa variável no arquivo.
+O arquivo local `.env` não deve ser versionado; use `.env.example` como modelo.
+
+A central inicia por padrão em modo de teste: gera telemetria sintética a cada
+5 segundos e não inicializa o GPIO nem abre a porta serial. Para testar a
+recepção usando o rádio E220 e o payload de teste do ESP32, configure
+`CENTRAL_AMBIENTE=teste_radio`. Esse modo inicializa somente os pinos do rádio,
+mantém a bomba desativada e não aciona atuadores. Para operação real, use
+`CENTRAL_AMBIENTE=producao`.
+
+Para operação real, deixe a linha abaixo em `central/.env`:
+
+```dotenv
+CENTRAL_AMBIENTE=producao
+```
+
+Para teste com rádio e ESP32, use:
+
+```dotenv
+CENTRAL_AMBIENTE=teste_radio
+```
+
+Depois, inicie a central normalmente, sem definir variáveis no shell:
+
+```powershell
+python main.py
+```
+
+Os valores aceitos são `teste`, `teste_radio` e `producao`; qualquer outro
+valor interrompe a inicialização com erro de configuração.
+
+Essa variável configura somente a central. Para telemetria real, compile e
+grave os ESP32 com um ambiente PlatformIO que defina `TEST_MODE=0` (como
+`production` ou `debug`); o ambiente padrão do firmware mantém o modo de teste.
+Em produção, informe também uma chave Stormglass válida em
+`STORMGLASS_API_KEY` dentro de `central/.env`.
+
 ### Executar a Aplicação Backend (Core Engine):
 
 ```bash

@@ -1,0 +1,33 @@
+Relatório da central
+Conclusão: a central ainda não atende ao requisito. A separação em módulos é um bom começo, e o firmware já tem algumas abstrações para sensores e atuadores, mas o fluxo entre telemetria, decisão e acionamento está incompleto e incompatível entre Python e ESP32.
+
+Bloqueios principais
+A central pode encerrar antes de receber dados.
+LoRaRcvCont.receive() retorna None quando a fila está vazia. Em IrrigationEngine.start(), None encerra o loop. Como a leitura é não bloqueante, isso pode acontecer logo na inicialização ou entre envios dos nós.
+
+O formato recebido não corresponde ao que a decisão consome.
+No modo normal, o firmware publica dados em sensores, com leituras identificadas por sensor e campos como valor_calibrado; veja TelemetryService::collect() e SoilMoistureSensor::appendTo(). A central, porém, lê apenas sensor_data["moisture"] em decide_irrigation(). Quando essa chave falta, usa silenciosamente 50, portanto pode decidir sem considerar a umidade real.
+
+Há uma complicação adicional: o ambiente padrão do PlatformIO define TEST_MODE=1, e nesse modo o ESP envia um JSON de teste com temp, não a telemetria normal. Os ambientes production e debug desativam o modo de teste. Isso está em platformio.ini e GardenController::update().
+
+Não há caminho completo para comandar atuadores nos ESPs.
+O Python aciona somente um GPIO local do Raspberry Pi por aciona_bomba(); não transmite comandos pelo rádio. O firmware tem recepção de comandos e um processador que reconhece LED_ON, LED_OFF e SLEEP, mas não registra comandos para bombas ou válvulas: CommandProcessor.cpp. Além disso, o único atuador configurado no firmware está desabilitado em ActuatorConfig.h.
+
+Não existe tratamento confiável de múltiplos nós e seus sensores.
+A central não mantém estado por dispositivo, zona ou sensor. O contador ultimo_id é global, mas a telemetria normal do firmware não inclui esse campo id; o campo timestamp usa millis(), que reinicia por dispositivo. Também, se uma leitura serial trouxer várias mensagens completas de uma vez, _listen_loop() processa apenas a última e descarta as anteriores.
+
+A configuração não é dinâmica nem ilimitada.
+Sensores e atuadores do firmware são definidos em tabelas compiladas no programa. Há limites de 12 sensores e 4 atuadores; a fábrica de atuadores aceita atualmente apenas bombas, embora exista o tipo Valve. Confira SensorRegistry.h, ActuatorManager.h e ActuatorFactory.cpp. Adicionar ou reconfigurar dispositivos exige alterar o firmware; na central, os campos e a lógica também estão codificados diretamente.
+
+Riscos adicionais
+decide_irrigation() exige que todas as previsões horárias retornem “irrigar”. Isso pode tornar a decisão excessivamente restritiva; valores de previsão None também podem chegar ao modelo.
+A central consulta o serviço de clima em cada pacote e aciona a bomba de forma bloqueante. Se o processamento ou a bomba demorarem, mensagens ficam acumuladas na fila.
+O tempo de acionamento da bomba local não tem limite máximo explícito. O firmware já prevê tempo máximo e intervalo de reinício para bombas, mas esse caminho está desabilitado hoje.
+settings.py contém uma chave de API em texto no código. Recomendo revogá-la e gerar uma nova, armazenada em variável de ambiente ou mecanismo de segredos fora do repositório.
+O que está bem encaminhado
+A central tem módulos separados para recepção, decisão, clima e GPIO. No firmware, SensorRegistry, ActuatorManager e as fábricas dão uma base útil para ampliar o sistema. O problema é que essas partes ainda não formam um contrato ponta a ponta: os dados não chegam no formato esperado pela decisão, e o comando calculado não é roteado ao atuador correspondente.
+
+Direção recomendada
+Definir um protocolo versionado com identificador único de nó, timestamp/contador, lista de leituras com ID, tipo, unidade, valor e estado, além de comandos endereçados a nó e atuador. A central deve validar e normalizar cada pacote, manter o estado por nó/zona, aplicar uma política de decisão configurável e enviar o comando com confirmação, timeout e tratamento de falhas. Os limites de execução e parada de emergência precisam valer também para os atuadores locais.
+
+A revisão foi estática; não alterei arquivos nem testei com rádio ou hardware. Os diagnósticos dos arquivos Python consultados não apontaram erros, mas isso não valida o comportamento em execução.
