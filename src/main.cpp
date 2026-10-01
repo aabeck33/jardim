@@ -7,7 +7,7 @@
  *
  * This project is designed to run on an ESP32 board with LoRa capabilities.
  * It collects data from soil moisture sensors, battery voltage, and internal temperature,
- * then sends this data via LoRa in a JSON format. The data is encrypted using AES-128.
+ * then sends this data via LoRa in a JSON format. Optional payload obfuscation uses XOR.
  * It also includes a watchdog timer to prevent infinite loops and a display for status updates.
  * This code is designed to be compiled with PlatformIO using the C++11 standard.
  * PlatformIO configuration is set in platformio.ini file.
@@ -19,11 +19,19 @@
  * https://mischianti.org/ebyte-lora-e220-device-for-arduino-esp32-or-esp8266-manage-wake-on-radio-and-sends-structured-data-5/#google_vignette
  * https://github.com/xreef/EByte_LoRa_E220_Series_Library
  */
-#include "main.h"
-#include "setup.h"
-#include "utils.h"
+#include <main.h>
+#include <setup.h>
+#include <utils.h>
 
 uint32_t contador = 0;
+Configuration configE220std;
+RTC_DATA_ATTR bool modoSeguro = false;
+bool displayStatus = false;
+bool serialOk = false;
+unsigned long lastMsgMillis = 0;
+#if (USE_WIFI)
+unsigned long ultimaTentativaWiFi = 0;
+#endif
 
 #if (USE_LORA)
   /**
@@ -259,6 +267,7 @@ void loop() {
   #else
 
     // Teste de transmissão LoRaExt - comentar
+    #if (USE_LORA_EXT)
     Serial.print("[E220] AUX antes: ");
     Serial.println(digitalRead(LORA_EXT_AUX));
     String payload =
@@ -277,6 +286,9 @@ void loop() {
     Serial.print("[E220] AUX depois: ");
     Serial.println(digitalRead(LORA_EXT_AUX));
     delay(3000);
+    #else
+    delay(1000);
+    #endif
 
   #endif
 

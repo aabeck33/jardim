@@ -4,7 +4,9 @@
  * @file utils.h
  * @brief Funções utilitárias para o projeto Jardim Inteligente.
  */
-#include "main.h"
+#include <main.h>
+
+#ifdef JARDIM_UTILS_IMPLEMENTATION
 
 
 /**
@@ -12,6 +14,7 @@
  * @param state [String] Estado desejado ("on" ou "off"). Padrão: "on".
  */
 void displayOnOff(const String &state) {
+#if (USE_DISPLAY)
   if (state == "on") {
     displayStatus = true;
     display.ssd1306_command(SSD1306_DISPLAYON);
@@ -19,6 +22,9 @@ void displayOnOff(const String &state) {
     displayStatus = false;
     display.ssd1306_command(SSD1306_DISPLAYOFF);
   }
+#else
+  (void)state;
+#endif
 }
 
 
@@ -241,13 +247,28 @@ void processarComando(const String &cmd) {
   } else if (cmd == "LED_OFF") {
     digitalWrite(LED_PIN, LOW);
     Serial.println("LED desligado");
-  } else if (cmd.startsWith("SLEEP")) {
-    int tempo = cmd.substring(6).toInt();
+  } else if (cmd.startsWith("SLEEP ")) {
+    String tempoTexto = cmd.substring(6);
+    tempoTexto.trim();
+    bool somenteDigitos = tempoTexto.length() > 0;
+    for (size_t i = 0; i < tempoTexto.length(); ++i) {
+      if (!isdigit(tempoTexto[i])) {
+        somenteDigitos = false;
+        break;
+      }
+    }
+
+    const long tempo = somenteDigitos ? tempoTexto.toInt() : 0;
+    if (!somenteDigitos || tempo <= 0 || tempo > 86400) {
+      Serial.println("Comando SLEEP inválido. Use SLEEP <segundos> entre 1 e 86400.");
+      return;
+    }
+
     Serial.print("Dormir por ");
     Serial.print(tempo);
     Serial.println(" segundos");
     delay(100);
-    esp_sleep_enable_timer_wakeup((uint64_t)tempo * 1000000ULL);
+    esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(tempo) * 1000000ULL);
     esp_deep_sleep_start();
   } else {
     Serial.println("Comando desconhecido");
@@ -278,9 +299,15 @@ void receberComandoLoRa() {
   #if (USE_LORA_EXT)
     if (LoRaExt.available() > 0) {
       ResponseContainer rc = LoRaExt.receiveMessage();
-      String recebido = rc.data;
-      Serial.print("Mensagem recebida: ");
-      Serial.println(recebido);
+      if (rc.status.code == E220_SUCCESS) {
+        String recebido = rc.data;
+        Serial.print("Mensagem recebida: ");
+        Serial.println(recebido);
+        processarComando(recebido);
+      } else {
+        Serial.print("Erro ao receber mensagem E220: ");
+        Serial.println(rc.status.getResponseDescription());
+      }
     }
   #endif
 }
@@ -441,6 +468,7 @@ void enviarDados(const String &payload) {
 /**
  * @brief Faz o reset do display OLED.
  */
+#if (USE_DISPLAY)
 void resetOLED() {
   digitalWrite(OLED_RESET, LOW);
   delay(150);
@@ -448,10 +476,12 @@ void resetOLED() {
   delay(150);
   Serial.println("Display resetado.");
 }
+#endif
 
 /**
  * @brief Liga ou Desliga o circuito Vext.
  */
+#if (USE_DISPLAY)
 void VextOnOff(const String &state) {
   if (state == "On") {
     digitalWrite(PINO_VEXT, LOW);
@@ -463,11 +493,13 @@ void VextOnOff(const String &state) {
     Serial.println("Circuito Vext desligado.");
   }
 }
+#endif
 
 
 /**
  * @brief Aguarda o pino AUX do módulo LoRa ficar HIGH.
  */
+#if (USE_LORA_EXT)
 void wait_aux_high() {
   while (digitalRead(LORA_EXT_AUX) == LOW) {
     delay(10);
@@ -670,7 +702,7 @@ uint8_t* read_parametersBin(HardwareSerial &ser) {
  * @return [bool] true se a escrita foi bem-sucedida, false caso contrário.
  */
 bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]) {
-  uint8_t cmd[] = {0xC0, 0x00, 0x08};   // Comando de escrita (8 bytes de dados a partir do endereço 0x00)
+  uint8_t cmd[11] = {0xC0, 0x00, 0x08}; // Comando e 8 bytes de dados a partir do endereço 0x00
   static uint8_t resp[11];              // Array para armazenar a resposta
   memset(resp, 0, sizeof(resp));
   int i = 0;
@@ -719,6 +751,7 @@ bool write_parametersBin(HardwareSerial &ser, uint8_t params[8]) {
     return false;
   }
 }
+#endif
 
 /**
  * @brief Verifica se uma String contém um número válido.
@@ -797,6 +830,7 @@ void printModuleInformation(struct ModuleInformation moduleInformation) {
  * @brief Lê os parâmetros do módulo E220 em formato binário.
  * @return [Boolean] true se a leitura foi bem-sucedida, false caso contrário.
  */
+#if (USE_LORA_EXT)
 bool readParametersE220Bin() {
     const uint8_t comando[] = {
         0xC1, 0x00, 0x09
@@ -970,7 +1004,9 @@ bool readParametersE220Bin() {
 
     return true;
 }
+  #endif
 
 
+  #endif
 #endif
 // utils.h

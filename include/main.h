@@ -25,23 +25,52 @@
 #include <esp_task_wdt.h>
 #include <SPIFFS.h>
 #include <LoRa_E220.h>
+#include "secrets.h"
 
 
 // === Configurações do programa ===
-#define DEBUG_MODE true        // Modo de depuração
-#define TEST_MODE true          // Modo de teste
-#define USE_DISPLAY true        // Usar display OLED
-#define USE_LORA false           // Usar LoRa para comunicação
-#define USE_LORA_EXT true       // Usar módulo LORA externo - Precisa de USE_SERIAL_2
-#define USE_BATTERY false       // Usar monitoramento da bateria
-#define USE_ENCRYPTION false     // Usar encriptação
-#define USE_DEEP_SLEEP false    // Usar sono profundo para economia de energia
-#define USE_SPIFFS false        // Usar SPIFFS para armazenamento de arquivos
-#define USE_WIFI false          // Usar Wi-Fi para comunicação
-#define USE_BLUETOOTH false     // Usar Bluetooth
-#define USE_SERIAL true         // Usar Serial para depuração
-#define USE_SERIAL_2 true       // Usar Serial2 para comunicação com outros dispositivos (LORA, sensores, etc.)
-#define RECEIVE_COMMANDS true  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
+#ifndef DEBUG_MODE
+  #define DEBUG_MODE true
+#endif
+#ifndef TEST_MODE
+  #define TEST_MODE true
+#endif
+#ifndef USE_DISPLAY
+  #define USE_DISPLAY true
+#endif
+#ifndef USE_LORA
+  #define USE_LORA false
+#endif
+#ifndef USE_LORA_EXT
+  #define USE_LORA_EXT true
+#endif
+#ifndef USE_BATTERY
+  #define USE_BATTERY false
+#endif
+#ifndef USE_ENCRYPTION
+  #define USE_ENCRYPTION false
+#endif
+#ifndef USE_DEEP_SLEEP
+  #define USE_DEEP_SLEEP false
+#endif
+#ifndef USE_SPIFFS
+  #define USE_SPIFFS false
+#endif
+#ifndef USE_WIFI
+  #define USE_WIFI false
+#endif
+#ifndef USE_BLUETOOTH
+  #define USE_BLUETOOTH false
+#endif
+#ifndef USE_SERIAL
+  #define USE_SERIAL true
+#endif
+#ifndef USE_SERIAL_2
+  #define USE_SERIAL_2 true
+#endif
+#ifndef RECEIVE_COMMANDS
+  #define RECEIVE_COMMANDS true
+#endif
 
 // Dispositivos internos
 constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoramento da bateria
@@ -78,7 +107,7 @@ constexpr uint8_t SCREEN_ADDRESS = 0x3C;       // Endereço I2C do OLED
   #define LORA_EXT_M0 39
   #define LORA_EXT_M1 40
 #endif
-Configuration configE220std; // Configuração padrão do LoRa Externo
+extern Configuration configE220std; // Configuração padrão do LoRa Externo
 
 
 // === Variáveis e Constantes Globais ===
@@ -87,8 +116,8 @@ constexpr const char* NOME_PROJETO = "Jardim_Horta Inteligente";
 constexpr const char* DISPOSITIVO = "aabeck-01";
 constexpr const char* TIPO_DISPOSITIVO = "ESP32V3";
 constexpr const char* VERSAO_FIRMWARE = "0.0.3-alpha"; // Versão do firmware
-constexpr const char* ssid = "aabeck-ESP32";           // SSID do Wi-Fi
-constexpr const char* password = "EbSePc3k2&";         // Senha do Wi-Fi
+constexpr const char* ssid = WIFI_SSID;
+constexpr const char* password = WIFI_PASSWORD;
 
 constexpr size_t JSON_DOC_SIZE = 512;                  // Tamanho alocado
 constexpr size_t JSON_USAGE_WARNING_PERCENT = 85;      // Percentual de uso que aciona o alerta
@@ -136,13 +165,13 @@ constexpr uint32_t INTERVALO_RECONEXAO_WIFI = 180000;  // Intervalo de reconexã
 constexpr uint16_t WIFI_TIMEOUT = 10000;               // Timeout do Wi-Fi em milissegundos
 
 // Atribui valor persistente mesmo após deep sleep (mantido na RAM RTC)
-RTC_DATA_ATTR bool modoSeguro = false;   // Modo seguro para evitar loops infinitos
-bool displayStatus = false;              // Status do display OLED
-bool serialOk = false;                   // Indica se a Serial foi iniciada corretamente
-unsigned long lastMsgMillis = 0;         // Armazena o tempo da última mensagem exibida
+extern RTC_DATA_ATTR bool modoSeguro;    // Modo seguro para evitar loops infinitos
+extern bool displayStatus;               // Status do display OLED
+extern bool serialOk;                    // Indica se a Serial foi iniciada corretamente
+extern unsigned long lastMsgMillis;      // Armazena o tempo da última mensagem exibida
 
 #if (USE_WIFI)
-  unsigned long ultimaTentativaWiFi = 0; // Armazena o tempo da última tentativa de conexão Wi-Fi
+  extern unsigned long ultimaTentativaWiFi; // Armazena o tempo da última tentativa de conexão Wi-Fi
 #endif
 
 
@@ -157,9 +186,15 @@ unsigned long lastMsgMillis = 0;         // Armazena o tempo da última mensagem
 
 
 // === OBJETOS GLOBAIS ===
+#if (USE_LORA)
 extern SX1262 lora;
+#endif
+#if (USE_DISPLAY)
 extern Adafruit_SSD1306 display;
+#endif
+#if (USE_LORA_EXT)
 extern LoRa_E220 LoRaExt;
+#endif
 
 
 // === FUNÇÕES ===

@@ -8,9 +8,9 @@
  */
 #include <Arduino.h>
 #include <unity.h>
-#include "main.h"
-#include "setup.h"
-#include "utils.h"
+#include <main.h>
+#include <setup.h>
+#include <utils.h>
 
 
 // Instância do módulo LoRa SX1262
@@ -24,7 +24,18 @@
  *
  * @note The SX1262 object is created using the specified pin assignments.
  */
+#if (USE_LORA)
 SX1262 lora = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+#endif
+
+Configuration configE220std;
+RTC_DATA_ATTR bool modoSeguro = false;
+bool displayStatus = false;
+bool serialOk = false;
+unsigned long lastMsgMillis = 0;
+#if (USE_LORA_EXT)
+LoRa_E220 LoRaExt(&Serial2, LORA_EXT_AUX, LORA_EXT_M0, LORA_EXT_M1);
+#endif
 
 // Instância do display OLED SSD1306
 /**

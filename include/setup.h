@@ -4,7 +4,21 @@
  * @file setup.h
  * @brief Configurações de inicialização do sistema e dispositivos.
  */
-#include "utils.h"
+#include <utils.h>
+
+void setupWiFi();
+void setupSPIFFS();
+void setupLoRa();
+void setupDisplay();
+void iniciarPinos();
+bool setupBluetooth();
+bool setupSerial();
+bool setupSerial2();
+bool setupLoRaExt();
+bool setupLoRaExtOld();
+void testeE220Bruto();
+
+#ifdef JARDIM_SETUP_IMPLEMENTATION
 
 
 /**
@@ -75,6 +89,7 @@ void setupSPIFFS() {
  *    Rb ≈ 30.52 * 12 * 0.8 ≈ 292 bps
  */
 void setupLoRa() {
+#if (USE_LORA)
   dispmsg("Inicializando LoRa...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
 
   int state = lora.begin(
@@ -111,6 +126,7 @@ void setupLoRa() {
     esp_restart();
   }
   delay(2000);
+#endif
 }
 
 
@@ -120,6 +136,7 @@ void setupLoRa() {
  * Sinaliza erro e entra em loop caso não consiga inicializar.
  */
 void setupDisplay() {
+#if (USE_DISPLAY)
   // Liga o circuito Vext
   VextOnOff();
 
@@ -141,6 +158,7 @@ void setupDisplay() {
   display.display();
   Serial.println("Display OLED iniciado.");
   delay(500);
+#endif
 }
 
 void iniciarPinos() {
@@ -159,7 +177,9 @@ void iniciarPinos() {
   pinMode(PINO_BOTAO_SAIR_SEGURO, INPUT_PULLUP);  // Pino do botão de sair do modo seguro
   pinMode(LED_PIN, OUTPUT);                       // Pino do LED integrado
   pinMode(PINO_VEXT, OUTPUT);                     // Pino Vext
-  pinMode(OLED_RESET, OUTPUT);                    // Pino de reset do OLED
+  #if (USE_DISPLAY)
+    pinMode(OLED_RESET, OUTPUT);                  // Pino de reset do OLED
+  #endif
   #if (USE_LORA_EXT)
     pinMode(LORA_EXT_M0, OUTPUT);                   // Pino M0 do LoRa externo
     pinMode(LORA_EXT_M1, OUTPUT);                   // Pino M1 do LoRa externo
@@ -180,7 +200,7 @@ void iniciarPinos() {
  */
 bool setupBluetooth() {
   // Inicializa Bluetooth
-  if (!btStart()) {
+  if (btStart()) {
     dispmsg("Bluetooth iniciado.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     return true;
   } else {
@@ -243,6 +263,7 @@ bool setupSerial() {
  * @return [Boolean] true se a Serial 2 foi iniciada corretamente, false caso contrário.
  */
 bool setupSerial2() {
+#if (USE_SERIAL_2)
   unsigned long startMillis = millis();
 
   Serial2.begin(BAUD_RATE, SERIAL_8N1, SERIAL2_RX_PIN, SERIAL2_TX_PIN);
@@ -260,6 +281,9 @@ bool setupSerial2() {
     dispmsg("Serial 2 iniciada com sucesso.", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
     return true;
   }
+#else
+  return false;
+#endif
 }
 
 /**
@@ -267,7 +291,8 @@ bool setupSerial2() {
  * Escreve os parâmetros definidos no módulo e sinaliza sucesso ou falha.
  * @return [Boolean] true se a configuração foi bem-sucedida, false caso contrário.
  */
- bool setupLoRaExt() {
+#if (USE_LORA_EXT)
+bool setupLoRaExt() {
     Serial.println("[E220] Inicializando módulo externo...");
 
     LoRaExt.begin();
@@ -425,6 +450,13 @@ void testeE220Bruto() {
     digitalWrite(LORA_EXT_M1, LOW);
     delay(500);
 }
+#else
+bool setupLoRaExt() { return false; }
+bool setupLoRaExtOld() { return false; }
+void testeE220Bruto() {}
+#endif
+
+#endif
 
 #endif
 // setup.h

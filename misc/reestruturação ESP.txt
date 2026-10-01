@@ -1,0 +1,676 @@
+Resumo da avaliação
+Pontos positivos
+Existem opções de compilação para habilitar ou desabilitar display, LoRa, Wi-Fi, bateria, Bluetooth, SPIFFS e deep sleep.
+O código possui watchdog, modo seguro, monitoramento de memória e tratamento básico de falhas.
+Os pinos e parâmetros principais estão centralizados.
+As funções possuem comentários e documentação razoáveis.
+A coleta e a transmissão estão minimamente separadas no fluxo principal.
+Há suporte a dois tipos distintos de comunicação LoRa.
+
+Esses pontos mostram uma boa preocupação com confiabilidade e configuração do firmware. O problema principal não é falta de organização visual, mas acoplamento excessivo entre configuração, hardware, coleta, apresentação e comunicação.
+
+1. Avaliação geral do desenvolvimento
+Organização atual
+
+Hoje os arquivos estão divididos aproximadamente assim:
+
+main: fluxo de inicialização e execução.
+main: bibliotecas, configurações, pinos, variáveis globais, objetos globais e declarações.
+setup: implementação da inicialização de todos os periféricos.
+utils: implementação de coleta, display, comunicação, armazenamento, criptografia, comandos, LoRa e outras rotinas.
+
+O main está relativamente legível, mas ainda conhece diretamente Wi-Fi, Bluetooth, SPIFFS, display, dois rádios LoRa, watchdog, criptografia e deep sleep. Isso fará o setup() e o loop() crescerem sempre que entrar um novo componente.
+
+O maior sinal de alerta é o utils, que tem mais de 800 linhas e concentra responsabilidades muito diferentes: display, LED, erros, Wi-Fi, bateria, JSON, sensores, SPIFFS, criptografia, comandos e detalhes internos do E220. Na prática, ele já está funcionando como um arquivo monolítico.
+
+Configuração por #define
+
+O uso de opções como USE_DISPLAY, USE_LORA, USE_WIFI e USE_BATTERY é útil para gerar versões diferentes do firmware. Entretanto, ele não representa modularidade por si só.
+
+Atualmente, cada novo componente provavelmente exigirá:
+
+Criar mais uma macro USE_ALGUMA_COISA.
+Adicionar pinos no main.
+Adicionar declaração no main.
+Acrescentar inicialização no setup().
+Alterar coletarDados().
+Talvez alterar enviarDados().
+Acrescentar mais blocos #if em outros pontos.
+
+Portanto, o sistema está configurável, mas ainda não está verdadeiramente modular.
+
+2. Está preparado para adicionar mais módulos?
+Mais sensores: parcialmente
+
+Adicionar outro sensor analógico simples é relativamente fácil, pois já existe o array pinosEntrada[] e um laço de leitura. Porém, todos os valores são colocados em um único array JSON chamado "umidade", sem identificação individual, unidade, calibração, estado de leitura ou tipo do sensor.
+
+Isso funciona para vários sensores idênticos, mas começa a complicar quando você adiciona:
+
+temperatura do solo;
+temperatura e umidade do ar;
+luminosidade;
+chuva;
+nível de reservatório;
+pH;
+vazão;
+sensores I2C com endereços diferentes;
+sensores Modbus ou UART;
+sensores com intervalos de leitura diferentes.
+
+Para cada tipo, seria necessário alterar manualmente coletarDados(). Portanto, o código não oferece ainda um ponto de extensão comum para sensores.
+
+Bombas e válvulas: não está preparado
+
+Atualmente não existe uma camada própria para atuadores. Os comandos são tratados diretamente com uma sequência de if/else, e apenas LED e deep sleep aparecem como ações.
+
+Para controlar bombas com segurança, faltam pelo menos:
+
+representação própria de bomba ou válvula;
+estado atual;
+tempo máximo ligado;
+bloqueio contra acionamento simultâneo;
+intervalo mínimo entre partidas;
+proteção contra funcionamento sem água;
+associação entre bomba, setor e sensor;
+política automática de irrigação;
+possibilidade de desligamento emergencial;
+persistência ou recuperação segura do estado;
+confirmação de execução de comando.
+
+Se você adicionar várias bombas da forma atual, processarComando() provavelmente se tornará uma cadeia extensa de condições.
+
+Novos protocolos de comunicação: difícil
+
+A função enviarDados() conhece diretamente o E220 e o SX1262. Para adicionar MQTT, HTTP, ESP-NOW ou outro rádio, seria necessário modificar essa mesma função e acrescentar outro bloco condicional.
+
+O ideal é o restante do sistema não precisar saber se o transporte é LoRa, Wi-Fi, MQTT ou serial. Ele deveria apenas chamar algo como:
+
+C++
+transport.send(payload);
+Mostrar mais linhas
+Conclusão sobre expansão
+Novo sensor analógico idêntico: relativamente simples.
+Novo tipo de sensor: exige alterações em vários arquivos.
+Nova bomba ou válvula: possível, mas sem arquitetura adequada de segurança e gerenciamento.
+Novo protocolo de comunicação: exige modificar código existente.
+Vários módulos simultâneos: aumentará bastante o acoplamento e a quantidade de condicionais.
+3. Problemas técnicos que devem ser corrigidos primeiro
+3.1 Implementações dentro de arquivos .h
+
+O setup e o utils contêm as implementações completas das funções, não apenas suas declarações.
+
+Isso pode funcionar enquanto tudo termina em uma única unidade de compilação, mas fica perigoso quando o projeto for dividido em mais arquivos .cpp. Se um cabeçalho com funções não inline for incluído por duas unidades de compilação, podem surgir erros de múltipla definição.
+
+Estrutura recomendada:
+
+Plain Text
+include/
+config.h
+pins.h
+interfaces/
+ISensor.h
+IActuator.h
+ITransport.h
+ 
+src/
+main.cpp
+system/
+Application.cpp
+Application.h
+sensors/
+SoilMoistureSensor.cpp
+SoilMoistureSensor.h
+actuators/
+Pump.cpp
+Pump.h
+communications/
+E220Transport.cpp
+E220Transport.h
+Mostrar mais linhas
+
+Regra prática:
+
+.h: interfaces, tipos e declarações;
+.cpp: implementações;
+templates e funções realmente pequenas podem continuar no cabeçalho.
+3.2 Dependência circular
+
+O setup inclui utils.h, enquanto o utils inclui main.h. Além disso, o main inclui os três arquivos.
+
+Os include guards evitam recursão infinita, mas não resolvem o acoplamento conceitual. A ordem dos includes passa a influenciar a compilação, e separar o código em novos .cpp fica mais arriscado.
+
+O recomendado é que setup e utils dependam de interfaces ou módulos específicos, e não do cabeçalho principal da aplicação.
+
+3.3 Estado global excessivo
+
+O main define diretamente configurações, credenciais, pinos, variáveis persistentes, objetos, estados e uma instância de Configuration.
+
+Exemplos:
+
+modoSeguro;
+displayStatus;
+serialOk;
+lastMsgMillis;
+configE220std;
+credenciais Wi-Fi;
+parâmetros de hardware;
+configurações LoRa.
+
+Isso dificulta:
+
+testes;
+múltiplas instâncias;
+reutilização;
+substituição de hardware;
+entendimento de quem altera determinado estado.
+
+Crie uma classe ou estrutura de contexto:
+
+C++
+struct SystemContext {
+bool safeMode = false;
+bool serialReady = false;
+bool displayReady = false;
+uint32_t lastMessageMillis = 0;
+};
+Mostrar mais linhas
+
+Melhor ainda, cada módulo deve manter seu próprio estado internamente.
+
+3.4 Falha grave em write_parametersBin()
+
+Existe um problema de memória particularmente importante:
+
+C++
+uint8_t cmd[] = {0xC0, 0x00, 0x08};
+ 
+for (int k = 0; k < 8; k++) {
+cmd[3 + k] = params[k];
+}
+Mostrar mais linhas
+
+O array cmd tem espaço para apenas 3 bytes, mas o código escreve até cmd[10]. Isso provoca escrita fora dos limites do array e pode corromper a pilha. Depois, sizeof(cmd) continua retornando 3, portanto somente os três bytes originais serão enviados.
+
+A correção mínima é:
+
+C++
+uint8_t cmd[11] = {0xC0, 0x00, 0x08};
+ 
+for (size_t k = 0; k < 8; ++k) {
+cmd[3 + k] = params[k];
+}
+ 
+ser.write(cmd, sizeof(cmd));
+Mostrar mais linhas
+
+Eu trataria isso como prioridade crítica.
+
+3.5 Algumas macros não isolam inteiramente o componente
+
+OLED_RESET só é definido quando USE_DISPLAY está ativo, mas iniciarPinos() utiliza OLED_RESET sem colocar essa instrução dentro de #if USE_DISPLAY. Se o display for desativado, isso pode impedir a compilação.
+
+Atual:
+
+C++
+pinMode(OLED_RESET, OUTPUT);
+Mostrar mais linhas
+
+Recomendado:
+
+C++
+#if USE_DISPLAY
+pinMode(OLED_RESET, OUTPUT);
+#endif
+Mostrar mais linhas
+
+Há risco semelhante nas funções específicas do E220, pois várias delas são compiladas no utils e acessam LORA_EXT_M0, LORA_EXT_M1 e LORA_EXT_AUX. Esses identificadores só são definidos quando USE_LORA_EXT está ativo.
+
+O ideal é mover toda a implementação E220 para arquivos próprios e compilar o módulo apenas quando habilitado.
+
+3.6 Declarações e objetos condicionais inconsistentes
+
+Os objetos lora, display e LoRaExt são criados condicionalmente no main, mas estão declarados incondicionalmente como extern no main.
+
+Faça as declarações seguirem as mesmas condições:
+
+C++
+#if USE_LORA
+extern SX1262 lora;
+#endif
+ 
+#if USE_DISPLAY
+extern Adafruit_SSD1306 display;
+#endif
+ 
+#if USE_LORA_EXT
+extern LoRa_E220 LoRaExt;
+#endif
+Mostrar mais linhas
+
+Idealmente, esses objetos também devem ficar encapsulados dentro de suas respectivas classes.
+
+3.7 Credenciais no código-fonte
+
+O SSID e a senha estão definidos diretamente no main.
+
+Além do risco de exposição, isso obriga a recompilar o firmware quando a rede mudar.
+
+Use algo como:
+
+Plain Text
+include/secrets.example.h
+include/secrets.h
+Mostrar mais linhas
+
+E ignore secrets.h no controle de versão. Outra opção é armazenar configuração no NVS e oferecer provisionamento inicial.
+
+3.8 Criptografia XOR não deve ser considerada segurança
+
+O código chama o recurso de encriptação e utiliza XOR com uma chave de um byte.
+
+Isso serve apenas como ofuscação. Não fornece autenticação, integridade ou proteção adequada contra recuperação do conteúdo. Além disso, o comentário inicial de main afirma que os dados são criptografados com AES-128, mas a implementação atual usa XOR.
+
+Recomendação:
+
+renomear temporariamente para USE_OBFUSCATION;
+não afirmar que há AES;
+quando necessário, implementar criptografia autenticada;
+incluir nonce ou contador de mensagem;
+validar autenticidade antes de executar comandos recebidos.
+3.9 Possível inversão na inicialização do Bluetooth
+
+A função contém:
+
+C++
+if (!btStart()) {
+dispmsg("Bluetooth iniciado.");
+return true;
+} else {
+showError("Falha ao iniciar Bluetooth.", 1);
+return false;
+}
+Mostrar mais linhas
+
+Pela própria estrutura e pelas mensagens, a condição parece invertida: o ramo de falha anuncia sucesso e retorna true. Isso precisa ser validado contra o retorno efetivo da API usada, mas é um forte indício de erro lógico.
+
+3.10 Monitoramento de RAM possivelmente soma memória sobreposta
+
+verificarUsoRAM() imprime heap livre, RAM interna e RAM externa e depois apresenta a soma dessas três medidas como “Total RAM livre”.
+
+Dependendo de como ESP.getFreeHeap() contabiliza as regiões no ambiente utilizado, essa soma pode duplicar memória já representada. Recomendo tratar cada métrica separadamente em vez de produzir um total até confirmar a semântica exata da plataforma.
+
+3.11 Uso extensivo de String
+
+Há muitas concatenações e retornos de String, inclusive na criação do payload, mensagens, comandos e criptografia.
+
+Em um ESP32 isso pode funcionar por bastante tempo, mas um firmware maior e longevo pode sofrer fragmentação do heap. Para reduzir o risco:
+
+use diretamente serializeJson() para um buffer;
+use char[], std::array ou buffers dimensionados;
+reserve capacidade quando mantiver String;
+evite concatenações sucessivas.
+
+Exemplo:
+
+C++
+String payload;
+payload.reserve(512);
+serializeJson(dados, payload);
+Mostrar mais linhas
+3.12 JSON centralizado e pouco extensível
+
+coletarDados() conhece diretamente a temperatura interna, bateria e todos os sensores de umidade.
+
+Cada novo sensor obrigará a alterar a função central. O ideal é delegar:
+
+C++
+for (ISensor* sensor : sensors) {
+sensor->read();
+sensor->appendJson(dados);
+}
+Mostrar mais linhas
+
+Outra opção, mais econômica para microcontrolador, é manter uma tabela estática de sensores, evitando alocação dinâmica.
+
+3.13 Nomes e tipos que limitam crescimento
+
+aguardar() recebe uint8_t, mas converte minutos em milissegundos e mantém o tempo em unsigned long.
+
+Use unidades explícitas no nome e tipos maiores:
+
+C++
+void aguardarMinutos(uint32_t minutos);
+Mostrar mais linhas
+
+Ou:
+
+C++
+void aguardarMs(uint32_t duracaoMs);
+Mostrar mais linhas
+
+Também existe inconsistência entre as mensagens dizendo “10 minutos” e TEMPO_ENVIO = 11.
+
+Não deixe o texto fixo:
+
+C++
+dispmsg("Deep sleep por " + String(TEMPO_ENVIO) + " min.");
+Mostrar mais linhas
+3.14 Configuração de produção misturada com modo de teste
+
+No estado atual, TEST_MODE está ativado. Nesse modo, o fluxo normal não coleta nem envia os dados reais e entra em um teste contínuo do E220 a cada três segundos.
+
+Crie ambientes de compilação separados no PlatformIO:
+
+INI
+[env:debug]
+build_flags =
+-D APP_DEBUG=1
+-D APP_TEST_MODE=1
+ 
+[env:production]
+build_flags =
+-D APP_DEBUG=0
+-D APP_TEST_MODE=0
+Mostrar mais linhas
+
+Isso reduz o risco de instalar firmware de teste no dispositivo definitivo.
+
+4. Arquitetura recomendada para modularização
+
+Minha recomendação é usar uma arquitetura modular simples, sem exagerar em padrões complexos.
+
+Camada de sensores
+C++
+class ISensor {
+public:
+virtual bool begin() = 0;
+virtual bool read() = 0;
+virtual void appendTo(JsonObject output) const = 0;
+virtual const char* id() const = 0;
+virtual ~ISensor() = default;
+};
+Mostrar mais linhas
+
+Implementação:
+
+C++
+class SoilMoistureSensor : public ISensor {
+public:
+SoilMoistureSensor(const char* id, uint8_t pin)
+: id_(id), pin_(pin) {}
+ 
+bool begin() override {
+pinMode(pin_, INPUT);
+return true;
+}
+ 
+bool read() override {
+rawValue_ = analogRead(pin_);
+return true;
+}
+ 
+void appendTo(JsonObject output) const override {
+JsonObject sensor = output.createNestedObject(id_);
+sensor["type"] = "soil_moisture";
+sensor["raw"] = rawValue_;
+}
+ 
+const char* id() const override {
+return id_;
+}
+ 
+private:
+const char* id_;
+uint8_t pin_;
+uint16_t rawValue_ = 0;
+};
+Mostrar mais linhas
+
+Adicionar um sensor passaria a ser principalmente registrar uma instância:
+
+C++
+SoilMoistureSensor canteiro1("canteiro_1", 2);
+SoilMoistureSensor canteiro2("canteiro_2", 3);
+Mostrar mais linhas
+Camada de atuadores
+C++
+class IActuator {
+public:
+virtual bool begin() = 0;
+virtual bool setState(bool active) = 0;
+virtual void update(uint32_t nowMs) = 0;
+virtual bool isActive() const = 0;
+virtual ~IActuator() = default;
+};
+Mostrar mais linhas
+
+Uma bomba deve ter temporização de segurança:
+
+C++
+class Pump : public IActuator {
+public:
+Pump(uint8_t pin, uint32_t maxRunTimeMs)
+: pin_(pin), maxRunTimeMs_(maxRunTimeMs) {}
+ 
+bool begin() override;
+bool setState(bool active) override;
+void update(uint32_t nowMs) override;
+bool isActive() const override;
+ 
+private:
+uint8_t pin_;
+uint32_t maxRunTimeMs_;
+uint32_t startedAtMs_ = 0;
+bool active_ = false;
+};
+Mostrar mais linhas
+
+O método update() pode desligar a bomba automaticamente quando atingir o limite.
+
+Camada de transporte
+C++
+class ITransport {
+public:
+virtual bool begin() = 0;
+virtual bool send(const uint8_t* data, size_t length) = 0;
+virtual void poll() = 0;
+virtual ~ITransport() = default;
+};
+Mostrar mais linhas
+
+Implementações possíveis:
+
+Plain Text
+E220Transport
+SX1262Transport
+MqttTransport
+SerialTransport
+EspNowTransport
+Mostrar mais linhas
+
+A aplicação deixa de conhecer os detalhes:
+
+C++
+transport->send(
+reinterpret_cast<const uint8_t*>(payload.c_str()),
+payload.length()
+);
+Mostrar mais linhas
+Aplicação ou orquestrador
+C++
+class GardenController {
+public:
+bool begin();
+void update();
+ 
+private:
+void collectData();
+void evaluateRules();
+void sendTelemetry();
+void processCommands();
+};
+Mostrar mais linhas
+
+Com isso, o main.cpp ficaria pequeno:
+
+C++
+#include "GardenController.h"
+ 
+GardenController app;
+ 
+void setup() {
+app.begin();
+}
+ 
+void loop() {
+app.update();
+}
+Mostrar mais linhas
+
+Esse é um bom indicador de modularidade: o arquivo principal não cresce quando você adiciona um novo modelo de sensor ou transporte.
+
+5. Evite um novo problema: excesso de alocação dinâmica
+
+Em microcontroladores, eu evitaria criar e destruir objetos dinamicamente. Em vez de usar muitos new, prefira instâncias estáticas:
+
+C++
+SoilMoistureSensor sensor1("solo_1", 2);
+SoilMoistureSensor sensor2("solo_2", 3);
+Pump pump1(26, 120000);
+ 
+ISensor* sensors[] = {
+&sensor1,
+&sensor2
+};
+Mostrar mais linhas
+
+Assim você obtém modularidade sem depender de alocação dinâmica contínua.
+
+Se interfaces virtuais aumentarem demais o tamanho do firmware, a mesma arquitetura pode ser implementada com estruturas e ponteiros de função. Eu começaria com classes, mediria o resultado e só faria essa otimização se necessário.
+
+6. Melhorias por prioridade
+Prioridade crítica
+Corrigir o estouro do array em write_parametersBin().
+Retirar as implementações de dentro de setup e utils.
+Proteger integralmente cada módulo com suas opções de compilação.
+Remover credenciais do código-fonte.
+Corrigir a diferença entre a documentação AES-128 e a implementação XOR.
+Confirmar e corrigir a lógica de setupBluetooth().
+Garantir que bombas iniciem sempre desligadas e tenham tempo máximo de funcionamento.
+Prioridade alta
+Criar interfaces separadas para sensores, atuadores e transportes.
+Dividir o grande utils.
+Remover estado global sempre que possível.
+Criar uma classe de aplicação ou controlador.
+Transformar o processamento de comandos em um sistema extensível.
+Padronizar códigos de erro e resultados de inicialização.
+Separar configurações de hardware, aplicação e segredos.
+Prioridade média
+Reduzir o uso e concatenação de String.
+Eliminar textos fixos relacionados a intervalos.
+Criar ambientes separados de teste, depuração e produção.
+Melhorar o formato do JSON para identificar cada sensor.
+Incluir unidade, estado, valor bruto e valor calibrado.
+Adicionar versionamento do protocolo de telemetria.
+Criar testes unitários para regras, comandos e serialização.
+7. Estrutura de diretórios sugerida
+Plain Text
+include/
+AppConfig.h
+BoardPins.h
+Secrets.h
+SystemContext.h
+ 
+interfaces/
+ISensor.h
+IActuator.h
+ITransport.h
+ILogger.h
+ 
+src/
+main.cpp
+ 
+application/
+GardenController.h
+GardenController.cpp
+IrrigationRules.h
+IrrigationRules.cpp
+ 
+sensors/
+SoilMoistureSensor.h
+SoilMoistureSensor.cpp
+BatterySensor.h
+BatterySensor.cpp
+InternalTemperatureSensor.h
+InternalTemperatureSensor.cpp
+ 
+actuators/
+Pump.h
+Pump.cpp
+Valve.h
+Valve.cpp
+ 
+transports/
+E220Transport.h
+E220Transport.cpp
+SX1262Transport.h
+SX1262Transport.cpp
+ 
+services/
+TelemetryService.h
+TelemetryService.cpp
+CommandService.h
+CommandService.cpp
+DisplayService.h
+DisplayService.cpp
+ErrorService.h
+ErrorService.cpp
+StorageService.h
+StorageService.cpp
+Mostrar mais linhas
+
+Não é necessário criar tudo de uma vez. A divisão inicial pode ser:
+
+Plain Text
+main.cpp
+config.h
+sensors.cpp/h
+actuators.cpp/h
+transport.cpp/h
+display.cpp/h
+storage.cpp/h
+commands.cpp/h
+Mostrar mais linhas
+
+Depois você divide por dispositivo conforme o projeto crescer.
+
+8. Veredito final
+Qualidade atual
+
+O projeto mostra uma boa evolução experimental e já possui recursos acima de um protótipo muito simples: watchdog, modo seguro, opções de compilação, monitoramento, diferentes rádios e documentação. Isso é positivo.
+
+Preparação para expansão
+
+Ainda não está fácil nem simples adicionar muitos módulos.
+
+O código aceita ampliação, mas a ampliação atual acontece por alteração direta de arquivos centrais. Isso aumenta o risco de:
+
+quebrar funcionalidades existentes;
+introduzir dependências condicionais inválidas;
+criar arquivos muito grandes;
+dificultar testes;
+repetir tratamento de erros;
+tornar o loop() cada vez mais complexo.
+Meta prática
+
+Considere a modularização bem-sucedida quando:
+
+adicionar um sensor exigir apenas criar sua classe e registrá-la;
+adicionar uma bomba não exigir alterar a coleta de sensores;
+trocar E220 por SX1262 não alterar a lógica da aplicação;
+desabilitar o display realmente remover toda a dependência dele;
+o main.cpp tiver apenas inicialização e chamada de app.update();
+cada módulo puder ser compilado e testado separadamente.
+Melhorias principais da avaliação
+
+Organizei os problemas por impacto, diferenciei configuração por macros de modularidade real e propus uma arquitetura apropriada para ESP32, evitando uma solução excessivamente pesada. O ponto mais urgente é corrigir a corrupção de memória em write_parametersBin(); depois, a mudança com maior retorno é separar as implementações dos cabeçalhos e introduzir interfaces para sensores, atuadores e transportes.
