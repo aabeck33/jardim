@@ -29,6 +29,7 @@
 
 // === Configurações do programa ===
 #define DEBUG_MODE true        // Modo de depuração
+#define TEST_MODE true          // Modo de teste
 #define USE_DISPLAY true        // Usar display OLED
 #define USE_LORA false           // Usar LoRa para comunicação
 #define USE_LORA_EXT true       // Usar módulo LORA externo - Precisa de USE_SERIAL_2
@@ -40,7 +41,7 @@
 #define USE_BLUETOOTH false     // Usar Bluetooth
 #define USE_SERIAL true         // Usar Serial para depuração
 #define USE_SERIAL_2 true       // Usar Serial2 para comunicação com outros dispositivos (LORA, sensores, etc.)
-#define RECEIVE_COMMANDS false  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
+#define RECEIVE_COMMANDS true  // Receber comandos via LoRa - Não usar com USE_DEEP_SLEEP
 
 // Dispositivos internos
 constexpr uint8_t VBAT_READ = 1;               // Pino analógico para monitoramento da bateria

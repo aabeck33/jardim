@@ -1,7 +1,7 @@
 import requests
 import arrow
 import pytz
-from config import settings as cfg
+import config.settings as cfg
 
 
 def get_weather() -> list[dict]:

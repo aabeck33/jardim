@@ -1,7 +1,7 @@
 from pathlib import Path
 import joblib
 import pandas as pd
-from config import settings as cfg
+import config.settings as cfg
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_CLASS_PATH = BASE_DIR / "models" / "modelo_class.pkl"

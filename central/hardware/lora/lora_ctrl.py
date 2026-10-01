@@ -3,7 +3,7 @@
 # Autor: Alvaro Adriano Beck
 # Versão: 2.0 (Arquitetura Modular)
 ###########################################################################
-from config import settings as cfg
+import config.settings as cfg
 import serial
 import time
 from typing import Any

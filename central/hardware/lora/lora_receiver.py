@@ -1,7 +1,8 @@
 import threading
+from queue import Queue
 import time
 import serial
-from config import settings as cfg
+import config.settings as cfg
 from . import lora_ctrl as loractrl
 
 class LoRaRcvCont:
@@ -10,7 +11,7 @@ class LoRaRcvCont:
         self.ser = None
         self.thread = None
         self.running = False
-        self.last_message = None
+        self.messages = Queue()
         self.lock = threading.Lock()
 
     def _setup_radio(self):
@@ -31,6 +32,7 @@ class LoRaRcvCont:
             )
             if cfg.DEBUG_MODE:
                 print(f"[LoRa] Porta {cfg.PORT} aberta com sucesso.")
+                #loractrl.read_parameters(self.ser)
         except Exception as e:
             print(f"[LoRa] Erro ao abrir porta serial ({cfg.PORT}): {e}")
             self.ser = None
@@ -39,12 +41,21 @@ class LoRaRcvCont:
 
     def _listen_loop(self):
         """Loop principal da thread que lê a serial continuamente."""
+        if cfg.DEBUG_MODE:
+            print("[LoRa Thread] Iniciando loop de recepção...")
+            print(self.ser.port if self.ser else "Serial não inicializada.")
+            print(self.ser.baudrate if self.ser else "Serial não inicializada.")
+        
         buffer = b""
         while self.running:
+            if cfg.DEBUG_MODE:
+                print("[LoRa Thread] Aguardando dados...")
             try:
                 if self.ser and self.ser.is_open and self.ser.in_waiting:
                     data = self.ser.read(self.ser.in_waiting)
                     buffer += data
+                    if cfg.DEBUG_MODE:
+                        print(f"[LoRa Thread] Dados recebidos: {data}")
                     
                     if b'\n' in buffer:
                         lines = buffer.split(b'\n')
@@ -52,10 +63,14 @@ class LoRaRcvCont:
                         buffer = lines[-1]
                         
                         if msg_bruta:
-                            with self.lock:
-                                self.last_message = msg_bruta
-                                if cfg.DEBUG_MODE:
-                                    print(f"📡 [LoRa Thread] Nova mensagem: {msg_bruta}")
+                            self.messages.put(msg_bruta)
+                            if cfg.DEBUG_MODE:
+                                print(
+                                    f"📡 [LoRa Thread] Nova mensagem: {msg_bruta}"
+                                )
+                                print(
+                                    f"📦 Fila: {self.messages.qsize()}"
+                                )
                 
                 time.sleep(0.1)
             except Exception as e:
@@ -74,11 +89,10 @@ class LoRaRcvCont:
                 print("[LoRa] Thread de recepção iniciada em segundo plano.")
 
     def receive(self):
-        """Retorna a última mensagem recebida e limpa o buffer interno."""
-        with self.lock:
-            msg = self.last_message
-            self.last_message = None
-            return msg
+        """Retorna a próxima mensagem da fila."""
+        if not self.messages.empty():
+            return self.messages.get()
+        return None
 
     def stop(self):
         """Finaliza a thread e fecha a serial."""

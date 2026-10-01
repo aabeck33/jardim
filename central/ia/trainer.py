@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from config import settings as cfg
+import config.settings as cfg
 
 BASE_DIR = Path(__file__).resolve().parent
 CSV_FILE = BASE_DIR / "data" / "dados_irrigacao.csv"

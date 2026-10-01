@@ -1,5 +1,5 @@
 import time
-from config import settings as cfg
+import config.settings as cfg
 
 try:
     import RPi.GPIO as GPIO
@@ -26,14 +26,25 @@ except (ImportError, RuntimeError):
 
 
 def init_gpio():
-    """Inicializa os pinos GPIO do Raspberry Pi se disponível."""
+    """Inicializa os pinos GPIO do Raspberry Pi."""
+
     if cfg.DEBUG_MODE:
         if GPIO_AVAILABLE:
             print("[GPIO] Configurando pinos GPIO...")
         else:
-            print("[GPIO Simulação] RPi.GPIO não disponível. Modo simulado ativo.")
-    
+            print("[GPIO Simulação] Modo simulado.")
+
     GPIO.setmode(GPIO.BCM)
+
+    # LoRa E220
+    GPIO.setup(cfg.PIN_M0, GPIO.OUT)
+    GPIO.setup(cfg.PIN_M1, GPIO.OUT)
+    GPIO.setup(cfg.PIN_AUX, GPIO.IN)
+
+    GPIO.output(cfg.PIN_M0, GPIO.LOW)
+    GPIO.output(cfg.PIN_M1, GPIO.LOW)
+
+    # Bomba
     GPIO.setup(cfg.PIN_BOMBA, GPIO.OUT)
     GPIO.output(cfg.PIN_BOMBA, GPIO.LOW)
 

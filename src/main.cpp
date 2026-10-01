@@ -23,6 +23,7 @@
 #include "setup.h"
 #include "utils.h"
 
+uint32_t contador = 0;
 
 #if (USE_LORA)
   /**
@@ -111,7 +112,7 @@ void setup() {
 
   #if (USE_DISPLAY && not USE_SERIAL)
     setupDisplay();
-  #elseif (not USE_DISPLAY && not USE_SERIAL)
+  #elif (!USE_DISPLAY && !USE_SERIAL)
     dispmsg("Display OLED desativado.");
   #endif
 
@@ -176,114 +177,109 @@ void loop() {
   // Reseta o watchdog timer a cada iteração do loop
   esp_task_wdt_reset();
 
-  if (modoSeguro) {
-    Serial.println("Modo seguro ativo. Aguarde comando para sair.");
-    #if (USE_DISPLAY)
-      dispmsg("Modo seguro ativo");
-    #endif
-    sinalizaErro(MODOSEGURO_PISCA, "rapido");
+  #if (!TEST_MODE)
+    if (modoSeguro) {
+      Serial.println("Modo seguro ativo. Aguarde comando para sair.");
+      #if (USE_DISPLAY)
+        dispmsg("Modo seguro ativo");
+      #endif
+      sinalizaErro(MODOSEGURO_PISCA, "rapido");
 
-    // Verifica se o botão de sair do modo seguro foi pressionado
-    verificarBotaoModoSeguro();
-    delay(100);
+      // Verifica se o botão de sair do modo seguro foi pressionado
+      verificarBotaoModoSeguro();
+      delay(100);
+
+      // Espera comando para sair do modo seguro
+      if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim(); // Remove espaços em branco
+        dispmsg("Comando recebido: " + cmd);
+        if (cmd == "sair") {
+          modoSeguro = false;  // Limpa a flag de modo seguro
+          dispmsg("Saindo do modo seguro.");
+          delay(100);
+          esp_restart();       // Reinicia no modo normal
+        } else if (cmd == "status") {
+          dispmsg("Modo seguro ativo. Aguardando instruções.");
+        }
+      }
+      return;  // Evita continuar no loop se estiver em modo seguro
+    }
     
-    // Espera comando para sair do modo seguro
-    if (Serial.available()) {
-      String cmd = Serial.readStringUntil('\n');
-      cmd.trim(); // Remove espaços em branco
-      dispmsg("Comando recebido: " + cmd);
-      if (cmd == "sair") {
-        modoSeguro = false;  // Limpa a flag de modo seguro
-        dispmsg("Saindo do modo seguro.");
-        delay(100);
-        esp_restart();       // Reinicia no modo normal
-      } else if (cmd == "status") {
-        dispmsg("Modo seguro ativo. Aguardando instruções.");
+    // Verifica se o Wi-Fi está conectado e conecta se necessário
+    #if (USE_WIFI)
+      if (WIFI_MODE == WIFI_STA && WiFi.status() != WL_CONNECTED) {
+        if (millis() - ultimaTentativaWiFi > INTERVALO_RECONEXAO_WIFI) {
+          dispmsg("Wi-Fi desconectado. Tentando reconectar...");
+          ultimaTentativaWiFi = millis();
+          connectToWiFi();
+        }
       }
+    #endif
+
+    String payload = coletarDados(); // Coleta os dados e cria o JSON para envio
+    payload += '\n';
+
+    #if (USE_ENCRYPTION)
+      String encryptedPayload = xorEncrypt(payload, XOR_KEY);   // Encripta os dados para envio
+      #if (USE_LORA || USE_LORA_EXT)
+        enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+      #endif
+    #else
+      #if (USE_LORA || USE_LORA_EXT)
+        enviarDados(payload);
+      #endif
+    #endif
+
+    // Exibe informações de depuração sobre o uso de memória
+    if (serialOk || DEBUG_MODE) {
+      verificarUsoRAM();
     }
-    return;  // Evita continuar no loop se estiver em modo seguro
-  }
-  
-  // Verifica se o Wi-Fi está conectado e conecta se necessário
-  #if (USE_WIFI)
-    if (WIFI_MODE == WIFI_STA && WiFi.status() != WL_CONNECTED) {
-      if (millis() - ultimaTentativaWiFi > INTERVALO_RECONEXAO_WIFI) {
-        dispmsg("Wi-Fi desconectado. Tentando reconectar...");
-        ultimaTentativaWiFi = millis();
-        connectToWiFi();
-      }
-    }
-  #endif
 
-  String payload = coletarDados(); // Coleta os dados e cria o JSON para envio
-  payload += '\n';
+    #if (USE_DEEP_SLEEP)
+      dispmsg("DeepSleep por 10 min.");
+      #if (USE_SPIFFS && DEBUG_MODE)
+        logToSPIFFS("Entrando em modo de sono profundo por 10 minutos...");
+      #endif
+      esp_sleep_enable_timer_wakeup(TEMPO_ENVIO * 60000000); // microsegundos
+      esp_deep_sleep_start(); // Entra em sono profundo
+      // O código não continuará após este ponto, pois o ESP32 reiniciará.
+    #else
+      Serial.println("Aguardando 10 minutos antes do próximo envio...");
+      #if (USE_DISPLAY)
+        dispmsg("Aguardando 10 min.", 0);
+        dispmsg("antes do próx. envio.", 1);
 
-  #if (USE_ENCRYPTION)
-    String encryptedPayload = xorEncrypt(payload, XOR_KEY);   // Encripta os dados para envio
-    #if (USE_LORA || USE_LORA_EXT)
-      enviarDados(encryptedPayload);            // Envia os dados encriptados via LoRa
+        // Desliga o display após o envio
+        displayOnOff("off");
+      #endif
+      aguardar(TEMPO_ENVIO);
     #endif
+
   #else
-    #if (USE_LORA || USE_LORA_EXT)
-      enviarDados(payload);
-    #endif
+
+    // Teste de transmissão LoRaExt - comentar
+    Serial.print("[E220] AUX antes: ");
+    Serial.println(digitalRead(LORA_EXT_AUX));
+    String payload =
+    "{\"dispositivo\":\"aabeck-01\","
+    "\"tipo\":\"ESP32V3\","
+    "\"id\":" + String(contador++) + ","
+    "\"temp\":29}\n";
+    ResponseStatus status = LoRaExt.sendMessage(
+        payload.c_str(),
+        payload.length()
+    );
+    Serial.print("[E220] Envio: ");
+    Serial.print(status.code);
+    Serial.print(" - ");
+    Serial.println(status.getResponseDescription());
+    Serial.print("[E220] AUX depois: ");
+    Serial.println(digitalRead(LORA_EXT_AUX));
+    delay(3000);
+
   #endif
 
-  // Exibe informações de depuração sobre o uso de memória
-  if (serialOk || DEBUG_MODE) {
-    verificarUsoRAM();
-  }
-
-  #if (USE_DEEP_SLEEP)
-    dispmsg("DeepSleep por 10 min.");
-    #if (USE_SPIFFS && DEBUG_MODE)
-      logToSPIFFS("Entrando em modo de sono profundo por 10 minutos...");
-    #endif
-    esp_sleep_enable_timer_wakeup(TEMPO_ENVIO * 60000000); // microsegundos
-    esp_deep_sleep_start(); // Entra em sono profundo
-    // O código não continuará após este ponto, pois o ESP32 reiniciará.
-  #else
-    Serial.println("Aguardando 10 minutos antes do próximo envio...");
-    #if (USE_DISPLAY)
-      dispmsg("Aguardando 10 min.", 0);
-      dispmsg("antes do próx. envio.", 1);
-
-      // Desliga o display após o envio
-      displayOnOff("off");
-    #endif
-    aguardar(TEMPO_ENVIO);
-  #endif
-/*
-  // Teste de transmissão LoRaExt - comentar
-  Serial.print("[E220] AUX antes: ");
-  Serial.println(digitalRead(LORA_EXT_AUX));
-
-  const char mensagem[] = "PING123\n";
-
-  ResponseStatus status = LoRaExt.sendMessage(
-      mensagem,
-      sizeof(mensagem) - 1
-  );
-
-  Serial.print("[E220] Envio: ");
-  Serial.print(status.code);
-  Serial.print(" - ");
-  Serial.println(status.getResponseDescription());
-
-  Serial.print("[E220] AUX depois: ");
-  Serial.println(digitalRead(LORA_EXT_AUX));
-
-  delay(3000);
-*/
-/*
-  // Teste de transmissão LoRa SX1262
-  int state = lora.transmit("PING123\n");
-  if (state == RADIOLIB_ERR_NONE) {
-    dispmsg("Transmissão LoRa SX1262 OK.");
-  } else {
-    dispmsg("Erro na transmissão LoRa SX1262: " + String(state));
-  }
-  */
 }
 
 // main.cpp

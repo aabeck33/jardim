@@ -28,6 +28,14 @@ Este diretório contém o "cérebro" do sistema de irrigação automatizada. Ele
 
 ---
 
+## Conexão com Raspbery PI
+
+```bash
+ssh 192.168.0.198 -l aabeck
+```
+
+---
+
 ## 🏗️ Arquitetura Completa de Diretórios e Arquivos
 
 ```text
@@ -154,7 +162,6 @@ python tests/test_none_fix.py
 ```bash
 python3 -m serial.tools.miniterm /dev/serial0 9600
 ```
-
 
 ---
 *Autor: Alvaro Adriano Beck*  

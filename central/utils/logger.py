@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from config import settings as cfg
+from config.settings import settings as cfg
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / "logs"

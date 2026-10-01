@@ -1,5 +1,5 @@
 # Script para comunicação LoRa utilizando o módulo E220
-from config import settings as cfg
+import config.settings as cfg
 from . import lora_ctrl as loractrl
 import serial
 import time
