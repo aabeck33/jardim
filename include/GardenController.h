@@ -4,7 +4,7 @@
 #include <services/CommunicationService.h>
 #include <services/DisplayService.h>
 #include <services/TelemetryService.h>
-#include <actuators/ActuatorManager.h>
+#include <actuators/ActuatorService.h>
 
 class GardenController {
 public:
@@ -16,7 +16,7 @@ private:
   CommunicationService communication_;
   DisplayService display_;
   TelemetryService telemetry_;
-  ActuatorManager actuators_;
+  ActuatorService actuators_;
 };
 
 #endif

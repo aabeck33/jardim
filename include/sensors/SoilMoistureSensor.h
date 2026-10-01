@@ -6,7 +6,9 @@
 
 class SoilMoistureSensor : public ISensor {
 public:
+  SoilMoistureSensor() = default;
   SoilMoistureSensor(const char* id, uint8_t pin, uint16_t wetRaw = 0, uint16_t dryRaw = 4095);
+  void configure(const char* id, uint8_t pin, uint16_t wetRaw, uint16_t dryRaw);
   bool begin() override;
   bool read() override;
   SensorReading reading() const override;

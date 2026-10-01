@@ -16,7 +16,7 @@ constexpr size_t numEntradas = sizeof(pinosEntrada) / sizeof(pinosEntrada[0]);
 #if USE_DISPLAY
   #define OLED_SDA 17
   #define OLED_SCL 18
-  #define OLED_RESET 21
+  #define OLED_RESET 21                         // 21 ou -1 para Reset por software
   constexpr uint8_t SCREEN_WIDTH = 128;
   constexpr uint8_t SCREEN_HEIGHT = 64;
 #endif

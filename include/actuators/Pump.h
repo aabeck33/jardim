@@ -7,8 +7,11 @@
 
 class Pump : public IActuator {
 public:
+  Pump() = default;
   Pump(const char* id, uint8_t pin, uint32_t maxRunTimeMs,
        uint32_t restartCooldownMs = 5000, bool activeHigh = true);
+  void configure(const char* id, uint8_t pin, uint32_t maxRunTimeMs,
+                 uint32_t restartCooldownMs, bool activeHigh);
 
   bool begin() override;
   bool setState(bool active) override;

@@ -6,8 +6,11 @@
 
 class BatterySensor : public ISensor {
 public:
+  BatterySensor() = default;
   BatterySensor(const char* id, uint8_t pin, bool enabled,
                 uint16_t emptyRaw = 0, uint16_t fullRaw = 4095);
+  void configure(const char* id, uint8_t pin, bool enabled,
+                 uint16_t emptyRaw, uint16_t fullRaw);
   bool begin() override;
   bool read() override;
   SensorReading reading() const override;

@@ -2,6 +2,11 @@
 
 InternalTemperatureSensor::InternalTemperatureSensor(const char* id) : id_(id) {}
 
+void InternalTemperatureSensor::configure(const char* id) {
+  id_ = id;
+  valid_ = false;
+}
+
 bool InternalTemperatureSensor::begin() {
   valid_ = false;
   return true;

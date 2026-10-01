@@ -25,6 +25,15 @@ SoilMoistureSensor::SoilMoistureSensor(
     const char* id, uint8_t pin, uint16_t wetRaw, uint16_t dryRaw)
     : id_(id), pin_(pin), wetRaw_(wetRaw), dryRaw_(dryRaw) {}
 
+void SoilMoistureSensor::configure(
+    const char* id, uint8_t pin, uint16_t wetRaw, uint16_t dryRaw) {
+  id_ = id;
+  pin_ = pin;
+  wetRaw_ = wetRaw;
+  dryRaw_ = dryRaw;
+  valid_ = false;
+}
+
 bool SoilMoistureSensor::begin() {
   pinMode(pin_, INPUT);
   valid_ = false;

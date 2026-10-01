@@ -93,7 +93,7 @@ void setupLoRa() {
   dispmsg("Inicializando LoRa...", 0, 0, 1, SSD1306_WHITE, SSD1306_BLACK, false, true);
 
   int state = lora.begin(
-    freqLoRa,    // Frequência em MHz
+    freqLoRa,    // Frequência em MHz - Banda ISM para América do Sul
     bwLoRa,      // Largura de banda em kHz
     sfLoRa,      // Fator de espalhamento
     crLoRa,      // Taxa de codificação

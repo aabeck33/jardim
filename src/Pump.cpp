@@ -5,6 +5,17 @@ Pump::Pump(const char* id, uint8_t pin, uint32_t maxRunTimeMs,
     : id_(id), pin_(pin), maxRunTimeMs_(maxRunTimeMs),
       restartCooldownMs_(restartCooldownMs), activeHigh_(activeHigh) {}
 
+void Pump::configure(const char* id, uint8_t pin, uint32_t maxRunTimeMs,
+                     uint32_t restartCooldownMs, bool activeHigh) {
+  id_ = id;
+  pin_ = pin;
+  maxRunTimeMs_ = maxRunTimeMs;
+  restartCooldownMs_ = restartCooldownMs;
+  activeHigh_ = activeHigh;
+  active_ = false;
+  lastStatus_ = StatusCode::NotInitialized;
+}
+
 bool Pump::begin() {
   pinMode(pin_, OUTPUT);
   active_ = false;

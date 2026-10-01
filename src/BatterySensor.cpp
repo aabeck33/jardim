@@ -4,6 +4,16 @@ BatterySensor::BatterySensor(const char* id, uint8_t pin, bool enabled,
                uint16_t emptyRaw, uint16_t fullRaw)
   : id_(id), pin_(pin), enabled_(enabled), emptyRaw_(emptyRaw), fullRaw_(fullRaw) {}
 
+void BatterySensor::configure(const char* id, uint8_t pin, bool enabled,
+                              uint16_t emptyRaw, uint16_t fullRaw) {
+  id_ = id;
+  pin_ = pin;
+  enabled_ = enabled;
+  emptyRaw_ = emptyRaw;
+  fullRaw_ = fullRaw;
+  valid_ = false;
+}
+
 bool BatterySensor::begin() {
   if (enabled_) {
     pinMode(pin_, INPUT);

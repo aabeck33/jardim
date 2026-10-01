@@ -60,7 +60,9 @@ void GardenController::begin() {
   if (!telemetry_.begin()) {
     systemContext.lastInitStatus = StatusCode::HardwareFailure;
   }
-  actuators_.beginAll();
+  if (!actuators_.begin()) {
+    systemContext.lastInitStatus = StatusCode::HardwareFailure;
+  }
 
   #if (USE_LORA)
     setupLoRa();

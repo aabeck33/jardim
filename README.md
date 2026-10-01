@@ -15,6 +15,8 @@ include/
   StatusCode.h    Resultados padronizados de operacoes
   sensors/SensorConfig.h
                   Lista explicita de sensores, tipos, pinos e calibracao
+  actuators/ActuatorConfig.h
+                  Lista explicita de bombas e valvulas
   GardenController.h
                   Orquestracao do ciclo de vida da aplicacao
   SystemContext.h Estado operacional compartilhado entre modulos
@@ -155,7 +157,7 @@ Os testes atuais exercitam APIs que dependem de GPIO, display, Serial e radio. A
 
 ## Configuracao de recursos
 
-As opcoes podem ser alteradas em `include/main.h` ou sobrescritas por `build_flags` no `platformio.ini`:
+As opcoes da aplicacao podem ser alteradas em `include/AppConfig.h` ou sobrescritas por `build_flags` no `platformio.ini`. Pinos e parametros especificos da placa ficam em `include/BoardPins.h`.
 
 - `USE_DISPLAY`: display OLED.
 - `USE_LORA`: SX1262 integrado.
@@ -170,6 +172,69 @@ As opcoes podem ser alteradas em `include/main.h` ou sobrescritas por `build_fla
 - `DEBUG_MODE`: mensagens adicionais de diagnostico.
 
 O XOR existente e apenas ofuscacao e nao deve ser tratado como protecao criptografica. Para dados sensiveis, e necessario definir um protocolo compativel com a Central usando criptografia autenticada.
+
+## Configuracao de sensores
+
+Todos os sensores incluidos no firmware devem aparecer explicitamente em `include/sensors/SensorConfig.h`. A entrada de configuracao define nome, tipo, origem, habilitacao, pino e pontos de calibracao:
+
+```cpp
+{
+  "id",
+  SensorType::SoilMoisture,
+  SensorSource::AnalogPin,
+  true,
+  GPIO,
+  PONTO_MOLHADO,
+  PONTO_SECO
+}
+```
+
+### Campos da configuracao
+
+- `id`: nome unico enviado no JSON, como `solo_1`.
+- `SensorType`: tipo funcional, como `SoilMoisture`, `Battery` ou `ReservoirLevel`.
+- `SensorSource`: origem da leitura: `AnalogPin`, `InternalEsp32` ou `ExternalDriver`.
+- `enabled`: controla se o sensor sera registrado e enviado.
+- `pin`: GPIO fisico. Para sensores internos use `SENSOR_NO_PIN`.
+- `firstCalibrationPoint` e `secondCalibrationPoint`: referencias usadas pela conversao do valor bruto.
+
+### Sensores que ja fazem parte da configuracao
+
+- `solo_1` a `solo_6`: sensores analogicos nos pinos definidos em `BoardPins.h`, calibrados entre molhado e seco.
+- `temperatura_interna`: usa o sensor interno do ESP32 e nao possui GPIO externo.
+- `bateria`: usa `VBAT_READ`, atualmente GPIO 1, com divisor resistivo de 2:1. Pode ser desabilitada por `USE_BATTERY`.
+- `umidade_ar`: reservado para um driver externo, como DHT ou SHT; permanece desabilitado ate o driver e o hardware serem configurados.
+- `nivel_reservatorio`: reservado para sensor analogico, boia, ultrassonico ou outro driver; permanece desabilitado ate a configuracao fisica existir.
+
+### Adicionando outro sensor analogico
+
+1. Escolha um `id` unico.
+2. Confirme o GPIO em `BoardPins.h`.
+3. Adicione uma entrada em `SENSOR_CONFIG`.
+4. Use `enabled = true` somente depois de confirmar a ligacao fisica.
+5. Defina os pontos de calibracao medidos para aquele sensor.
+6. Compile o ambiente `debug` e confira o JSON no monitor serial.
+
+Exemplo de um novo sensor de solo:
+
+```cpp
+{"solo_7", SensorType::SoilMoisture, SensorSource::AnalogPin,
+ true, 8, 1200, 3500}
+```
+
+O registro e a telemetria usam essa configuracao para incluir o sensor; nao e necessario criar um novo campo JSON. Para um tipo de sensor ainda inexistente, crie uma classe que implemente `ISensor`, adicione o caso correspondente em `SensorFactory` e depois inclua a entrada em `SensorConfig.h`. A factory valida IDs e conflitos de GPIO antes de registrar os sensores.
+
+### Calibracao
+
+A calibracao deve ser feita por sensor e documentada junto da configuracao:
+
+- umidade do solo: valor medido no solo molhado e no solo seco;
+- nivel de reservatorio: valor correspondente a vazio e cheio;
+- bateria: referencia do divisor resistivo e tensao esperada;
+- temperatura interna: calibracao `native` do ESP32;
+- umidade do ar: valor fornecido pelo driver do sensor.
+
+Nao reutilize pontos de calibracao de sensores diferentes sem medir o hardware real.
 
 ## Formato da telemetria
 
@@ -195,6 +260,44 @@ O intervalo de envio e configurado por `TEMPO_ENVIO` em `AppConfig.h`; as mensag
 ## Atuadores
 
 `Pump` e `ActuatorManager` fornecem a camada segura para futuras bombas: o GPIO e desligado no boot, existe tempo maximo ligado, cooldown entre partidas, desligamento automatico por timeout e parada de emergencia. Nenhuma bomba e registrada por padrao; um pino e uma politica de seguranca devem ser definidos antes da ativacao fisica.
+
+### Processo para adicionar uma bomba
+
+Uma bomba nao deve ser adicionada apenas como um novo comando. O processo minimo e:
+
+1. Defina um `id` unico para a bomba, por exemplo `bomba_canteiro_1`.
+2. Escolha um GPIO de controle que nao esteja sendo usado por display, radio, Serial2 ou sensor.
+3. Confirme se o rele ou driver possui logica ativa em nivel alto ou baixo.
+4. Instancie `Pump` com GPIO, tempo maximo ligado e cooldown.
+5. Registre a bomba no `ActuatorManager`.
+6. Confirme que `begin()` inicia o GPIO desligado.
+7. Associe protecao contra reservatorio vazio, se disponivel.
+8. Adicione comandos de ligar/desligar somente depois que a politica de seguranca estiver definida.
+9. Teste primeiro sem carga, depois com o rele, e somente por ultimo com a bomba conectada.
+
+A configuracao deve ser criada em `include/actuators/ActuatorConfig.h`:
+
+```cpp
+{"bomba_canteiro_1", ActuatorType::Pump, false, 26, true, 120000, 5000}
+```
+
+Os campos sao, respectivamente, identificador, tipo, habilitacao, GPIO,
+logica ativa, tempo maximo ligado e cooldown entre partidas. O servico
+registra somente atuadores com `enabled = true` e rejeita IDs ou GPIOs
+duplicados. Para um novo tipo de atuador, crie a implementacao de
+`IActuator` e adicione o caso correspondente em `ActuatorFactory`.
+
+Exemplo estrutural:
+
+```cpp
+Pump bomba1("bomba_canteiro_1", GPIO_BOMBA_1, 120000, 5000, true);
+ActuatorManager atuadores;
+
+atuadores.add(bomba1);
+atuadores.beginAll();
+```
+
+O `update(millis())` deve ser chamado continuamente pelo controlador. Quando o tempo maximo for atingido, a bomba sera desligada automaticamente. Antes de ativar uma bomba real, ainda devem existir intertravamento entre bombas, comando `ALL_OFF`, protecao contra funcionamento a seco e uma estrategia de recuperacao apos reinicializacao.
 
 ## Execucao da Central
 

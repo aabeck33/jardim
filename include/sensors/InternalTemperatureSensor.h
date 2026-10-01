@@ -6,7 +6,9 @@
 
 class InternalTemperatureSensor : public ISensor {
 public:
-  explicit InternalTemperatureSensor(const char* id = "temperatura");
+  InternalTemperatureSensor() = default;
+  explicit InternalTemperatureSensor(const char* id);
+  void configure(const char* id);
   bool begin() override;
   bool read() override;
   SensorReading reading() const override;
